@@ -3,8 +3,11 @@ import { SiteChrome } from "@/components/SiteChrome";
 import { AffiliateDisclosure } from "@/components/AffiliateDisclosure";
 import { prisma } from "@/lib/prisma";
 
-/** ISR — public pages refresh periodically; admin mutations still revalidatePath. */
-export const revalidate = 60;
+/**
+ * Render per request. Every public page reads Postgres (nav categories at minimum),
+ * so build-time prerendering (ISR) would require a live DB during `next build`.
+ */
+export const dynamic = "force-dynamic";
 
 export default async function SiteLayout({
   children,

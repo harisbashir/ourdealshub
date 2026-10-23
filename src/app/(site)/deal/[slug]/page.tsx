@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -19,11 +20,17 @@ import {
 
 type Props = { params: Promise<{ slug: string }> };
 
+/** Shared by generateMetadata + page — one DB query per request. */
+const getPublicDeal = cache((slug: string) =>
+  prisma.product.findFirst({
+    where: publicProductWhere({ slug }),
+    include: { category: { include: { parent: true } } },
+  })
+);
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findFirst({
-    where: publicProductWhere({ slug }),
-  });
+  const product = await getPublicDeal(slug);
   if (!product) return { title: "Deal" };
 
   const desc =
@@ -57,10 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DealPage({ params }: Props) {
   const { slug } = await params;
-  const product = await prisma.product.findFirst({
-    where: publicProductWhere({ slug }),
-    include: { category: { include: { parent: true } } },
-  });
+  const product = await getPublicDeal(slug);
   if (!product) notFound();
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";

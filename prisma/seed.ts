@@ -35,9 +35,12 @@ async function main() {
   }
   const passwordHash = await bcrypt.hash(password, 12);
 
-  if (process.env.SEED_WIPE === "1" || process.env.NODE_ENV !== "production") {
+  // Wipe is always opt-in — re-running the seed must never silently delete deals.
+  if (process.env.SEED_WIPE === "1") {
     await prisma.clickEvent.deleteMany();
     await prisma.product.deleteMany();
+    // Category.parent is onDelete: Restrict — remove subcategories first
+    await prisma.category.deleteMany({ where: { parentId: { not: null } } });
     await prisma.category.deleteMany();
   } else {
     console.warn(
@@ -180,8 +183,10 @@ async function main() {
           "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&q=80",
       },
     ].map((c) =>
-      prisma.category.create({
-        data: {
+      prisma.category.upsert({
+        where: { slug: c.slug },
+        update: {},
+        create: {
           ...c,
           badge: null,
         },
@@ -191,8 +196,10 @@ async function main() {
 
   const electronics = categories.find((c) => c.slug === "electronics-tech");
   if (electronics) {
-    await prisma.category.create({
-      data: {
+    await prisma.category.upsert({
+      where: { slug: "electronics-tech-cables-chargers" },
+      update: {},
+      create: {
         name: "Cables & Chargers",
         slug: "electronics-tech-cables-chargers",
         icon: "cpu",
@@ -205,16 +212,15 @@ async function main() {
     });
   }
 
+  // Create only — never overwrite settings an admin has customised.
+  // Empty prompt = built-in JSON prompt (getDefaultGeminiPrompt in src/lib/gemini.ts).
   await prisma.siteSettings.upsert({
     where: { id: "default" },
-    update: {
-      autoPublish: false,
-      geminiPromptTemplate: ASSOCIATES_SAFE_GEMINI_PROMPT,
-    },
+    update: {},
     create: {
       id: "default",
       autoPublish: false,
-      geminiPromptTemplate: ASSOCIATES_SAFE_GEMINI_PROMPT,
+      geminiPromptTemplate: "",
     },
   });
 
@@ -228,23 +234,6 @@ async function main() {
   );
 }
 
-const ASSOCIATES_SAFE_GEMINI_PROMPT = `You write short Amazon deal posts for OurDealsHub.
-
-Using ONLY the product information provided below, write a clear title and description.
-
-Rules (Amazon Associates):
-- Do NOT invent prices, discounts, savings percentages, “% off”, or “was/now” pricing
-- Do NOT invent or mention coupon codes or promo codes
-- Do NOT claim limited-time offers, stock scarcity, or “best price” unless that exact claim appears in the provided product information
-- Do not add specifications or features that are not in the provided product information
-
-Product Title:
-{{product_title}}
-
-Product Description:
-{{product_description}}
-
-Return only the final deal post.`;
 
 main()
   .catch((e) => {
