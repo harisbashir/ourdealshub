@@ -42,7 +42,7 @@ import { rateLimitDurable } from "@/lib/rate-limit-durable";
 import { autoPostPublishedDeal } from "@/lib/social-publish";
 import { after } from "next/server";
 
-const emailSchema = z.string().email().max(200);
+const emailSchema = z.email().max(200);
 const passwordSchema = z
   .string()
   .min(10, "Password must be at least 10 characters")
