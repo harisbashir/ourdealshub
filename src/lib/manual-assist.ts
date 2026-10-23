@@ -12,6 +12,7 @@ import { generateProductContent, isGeminiConfigured } from "@/lib/gemini";
 import { getSiteSettings } from "@/lib/settings";
 import { normalizeTrackingId } from "@/lib/tracking";
 import { rateLimitDurable } from "@/lib/rate-limit-durable";
+import { detectMarketplaceFromInput } from "@/lib/marketplace";
 
 export type ManualFetchResult =
   | {
@@ -28,24 +29,23 @@ export type ManualGeminiResult =
   | { ok: false; error: string };
 
 /**
- * Partner tag only for PA-API auth — never replaces the admin's pasted affiliate URL.
- * Prefer tag from the pasted link, then admin DB, then env fallback.
+ * Partner tag for the Creators API lookup only (never saved here).
+ * The admin's own tag for this store first — Amazon rejects tags from another
+ * store, and we never trust client-supplied tags — then the pasted link's tag.
  */
 function partnerTagForLookup(
   affiliateUrl: string,
   adminTrackingId: string | null
 ): string | null {
-  try {
-    const fromUrl = new URL(affiliateUrl).searchParams.get("tag");
-    const normalized = normalizeTrackingId(fromUrl);
-    if (normalized) return normalized;
-  } catch {
-    /* ignore */
-  }
-  return (
+  const own =
     normalizeTrackingId(adminTrackingId) ||
-    normalizeTrackingId(getEnvPartnerTagFallback())
-  );
+    normalizeTrackingId(getEnvPartnerTagFallback());
+  if (own) return own;
+  try {
+    return normalizeTrackingId(new URL(affiliateUrl).searchParams.get("tag"));
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -68,16 +68,17 @@ export async function fetchProductDetailsFromLink(
     };
   }
 
-  if (!isAmazonConfigured()) {
-    return {
-      ok: false,
-      error: "Amazon API is not configured on the server.",
-    };
-  }
-
   const raw = input.trim();
   if (!raw) {
     return { ok: false, error: "Paste an affiliate link or ASIN first." };
+  }
+
+  const market = detectMarketplaceFromInput(raw) || "US";
+  if (!(await isAmazonConfigured(market))) {
+    return {
+      ok: false,
+      error: `Amazon Creators API isn't configured for ${market}. Enter the details by hand, or ask a Super Admin to add credentials in Settings → API keys.`,
+    };
   }
 
   const asin = extractAsin(raw);
@@ -88,7 +89,7 @@ export async function fetchProductDetailsFromLink(
     };
   }
 
-  const adminTag = await getAdminTrackingId(admin.id);
+  const adminTag = await getAdminTrackingId(admin.id, market);
   const partnerTag = partnerTagForLookup(raw, adminTag);
   if (!partnerTag) {
     return {
@@ -99,7 +100,7 @@ export async function fetchProductDetailsFromLink(
   }
 
   try {
-    const product = await lookupAmazonProduct(asin, partnerTag);
+    const product = await lookupAmazonProduct(asin, partnerTag, market);
     return {
       ok: true,
       asin: product.asin,
@@ -133,10 +134,11 @@ export async function generateDealPostFromManual(opts: {
     };
   }
 
-  if (!isGeminiConfigured()) {
+  if (!(await isGeminiConfigured())) {
     return {
       ok: false,
-      error: "Gemini API is not configured on the server.",
+      error:
+        "Gemini isn't configured. A Super Admin can add the key in Settings → API keys.",
     };
   }
 

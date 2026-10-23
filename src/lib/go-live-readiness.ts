@@ -83,6 +83,11 @@ export async function getGoLiveReadiness(): Promise<{
   const usTag = superAdmin?.amazonTrackingId?.trim() || "";
   const ukTag = superAdmin?.amazonTrackingIdUk?.trim() || "";
 
+  const [amazonOk, geminiOk] = await Promise.all([
+    isAmazonConfigured(),
+    isGeminiConfigured(),
+  ]);
+
   const items: ReadinessItem[] = [
     {
       id: "secret",
@@ -197,21 +202,23 @@ export async function getGoLiveReadiness(): Promise<{
     },
     {
       id: "amazon-api",
-      label: "Amazon PA-API credentials",
-      ok: isAmazonConfigured(),
+      label: "Amazon Creators API credentials",
+      ok: amazonOk,
       requiredForLaunch: false,
-      detail: isAmazonConfigured()
-        ? "AMAZON_ACCESS_KEY / SECRET_KEY present."
-        : "Add when you go live — not required for local UI work.",
+      detail: amazonOk
+        ? "Creators API credentials saved (Settings → API keys)."
+        : "Add them in Settings → API keys to import deals automatically. Manual entry works without them.",
+      href: "/admin/settings#api-keys",
     },
     {
       id: "gemini-api",
       label: "Gemini API key",
-      ok: isGeminiConfigured(),
+      ok: geminiOk,
       requiredForLaunch: false,
-      detail: isGeminiConfigured()
-        ? "GEMINI_API_KEY present."
-        : "Add when you go live — imports can fall back to Amazon title/description.",
+      detail: geminiOk
+        ? "Gemini key saved (Settings → API keys)."
+        : "Add it in Settings → API keys for AI-written copy. Imports fall back to Amazon's title and features.",
+      href: "/admin/settings#api-keys",
     },
     {
       id: "cron-secret",
@@ -233,7 +240,7 @@ export async function getGoLiveReadiness(): Promise<{
           ? `Last cron OK at ${settings.cronLastRunAt.toISOString()}${
               settings.cronLastSummary ? ` (${settings.cronLastSummary})` : ""
             }`
-          : `Cron looks stale or failed (last: ${settings.cronLastRunAt.toISOString()}). Re-run windows-cron-daily.ps1 / host scheduler.`
+          : `Cron looks stale or failed (last: ${settings.cronLastRunAt.toISOString()}). Check the cron timer on the server (docs/DEPLOY.md).`
         : "No cron heartbeat yet — schedule GET /api/cron/daily (Bearer CRON_SECRET).",
     },
     {
@@ -251,7 +258,7 @@ export async function getGoLiveReadiness(): Promise<{
     .filter((i) => i.requiredForLaunch)
     .every((i) => i.ok);
 
-  const apisReady = isAmazonConfigured() && isGeminiConfigured();
+  const apisReady = amazonOk && geminiOk;
 
   /** Hide on dashboard only when every checklist item (incl. optional) is OK. */
   const dashboardComplete = items.every((i) => i.ok);

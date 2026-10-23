@@ -43,15 +43,6 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!isAmazonConfigured()) {
-      return NextResponse.json(
-        {
-          error:
-            "Amazon API is not configured on the server. Add credentials to environment variables.",
-        },
-        { status: 503 }
-      );
-    }
 
     const json = await req.json().catch(() => null);
     const parsed = bodySchema.safeParse(json);
@@ -65,6 +56,15 @@ export async function POST(req: Request) {
     const marketplace =
       detectMarketplaceFromInput(parsed.data.query) ||
       parseMarketplace(parsed.data.marketplace);
+
+    if (!(await isAmazonConfigured(marketplace))) {
+      return NextResponse.json(
+        {
+          error: `Amazon Creators API isn't configured for ${marketplace}. Add credentials in Admin → Settings → API keys.`,
+        },
+        { status: 503 }
+      );
+    }
 
     // Partner tag always from DB — never from request body
     const trackingId = await getAdminTrackingId(admin.id, marketplace);
@@ -103,7 +103,7 @@ export async function GET() {
   }
   const trackingId = await getAdminTrackingId(admin.id);
   return NextResponse.json({
-    configured: isAmazonConfigured(),
+    configured: await isAmazonConfigured(),
     hasTrackingId: Boolean(trackingId),
   });
 }

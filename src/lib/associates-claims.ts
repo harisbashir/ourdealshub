@@ -1,6 +1,9 @@
 /**
- * Amazon Associates hygiene — block unverifiable savings / coupon language
- * before content is saved or published.
+ * Amazon Associates hygiene — block copy the Program Policies / FTC rules
+ * don't allow before it is saved or published: prices and savings (only
+ * Amazon's live data may show prices), coupons, customer reviews and star
+ * ratings (Participation Requirements §6(t)), Amazon program badges,
+ * shipping/Prime promises, urgency, and invented first-hand testing.
  */
 
 const CLAIM_PATTERNS: { re: RegExp; label: string }[] = [
@@ -33,6 +36,32 @@ const CLAIM_PATTERNS: { re: RegExp; label: string }[] = [
   { re: /\blimited[- ]time\s+(offer|deal|only)\b/i, label: "limited-time claims" },
   { re: /\bonly\s+\d+\s+left\b/i, label: "scarcity stock claims" },
   { re: /\bhurry\b.{0,20}\b(deal|offer|sale)\b/i, label: "urgency sales claims" },
+  { re: /\blimited[- ]time\b/i, label: "limited-time claims" },
+  {
+    re: /\b(today only|while (stocks?|supplies) last|ends (soon|tonight|today)|act fast|selling fast|don'?t miss out)\b/i,
+    label: "urgency claims",
+  },
+  {
+    re: /\b(cheapest|lowest[- ]ever|price (drop|cut)|on sale|clearance|bargain)\b/i,
+    label: "price claims",
+  },
+  // Amazon program badges / rankings are Amazon content and change constantly
+  { re: /\bamazon'?s\s+choice\b/i, label: "“Amazon's Choice” badges" },
+  { re: /\bbest[- ]?sell(er|ing)\b/i, label: "best-seller claims" },
+  { re: /#\s?1\s+(best|seller|selling|rated|in)\b/i, label: "ranking claims" },
+  // Customer reviews / star ratings may not be displayed (Policies §6(t))
+  {
+    re: /\b\d(?:\.\d)?\s*(?:out of 5|\/\s*5)\b|\b[1-5]\.\d\s*stars?\b|\b(?:[1-5]|five|four)[- ]star\s+(?:rated|rating|reviews?)\b|\bstar[- ]rat(?:ed|ing)\b/i,
+    label: "star ratings",
+  },
+  { re: /\b\d[\d,]*\+?\s+(?:customer\s+)?(?:reviews|ratings)\b/i, label: "review counts" },
+  { re: /\b(customer|verified|buyer)\s+reviews?\b/i, label: "customer review mentions" },
+  { re: /\b(top|highly)[- ]rated\b/i, label: "rating claims" },
+  // Shipping / Prime / returns are Amazon's terms and vary per customer
+  { re: /\bprime\s+(eligible|shipping|delivery|members?)\b/i, label: "Prime claims" },
+  { re: /\bfree\s+(shipping|delivery|returns)\b/i, label: "shipping claims" },
+  // FTC: no invented first-hand experience
+  { re: /\b(i|we)\s+(tested|tried|used|own|reviewed)\b/i, label: "first-hand testing claims" },
 ];
 
 export type ClaimsCheckResult =

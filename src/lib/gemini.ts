@@ -1,46 +1,43 @@
 import { associatesClaimError } from "@/lib/associates-claims";
+import { DEFAULT_GEMINI_MODEL, getApiConfig } from "@/lib/api-config";
 
 export type GeminiProductContent = {
   title: string;
   description: string;
 };
 
-const DEFAULT_PROMPT = `You write unique Amazon affiliate product copy for a deals website.
+const DEFAULT_PROMPT = `You are an editor at OurDealsHub, an independent website that recommends products sold on Amazon. Write ORIGINAL editorial copy for one product, using the product facts below as your only source.
 
-Use ONLY facts present in the product title and description below.
-Never invent or include:
-- prices, currency amounts ($ £ €), discounts, “% off”, was/now pricing
-- coupon / promo codes
-- ratings, review counts, or customer quotes
-- warranties, shipping, stock, scarcity, or “best deal” claims
-- specs or benefits not clearly stated in the source
-If something is missing, omit it — never guess.
-Do not mention Amazon, ASIN, or affiliate links.
+The facts come from Amazon. Don't copy Amazon's wording: summarise in your own words and add genuine, useful commentary (who it suits, what stands out, what to check before buying). Never change or embellish a fact.
 
-Make each product feel distinct (avoid a copy-paste template across products):
-1. title — one concise line; keep the real product name; lightly polish wording.
-2. description — short original write-up:
-   - Open with 1–2 sentences unique to THIS product (what it is / who it suits), grounded in source facts.
-   - Then 4–6 bullets max. Each bullet = one concrete fact from the source. Optional emoji, but vary them; do not force the same structure every time.
-   - Close with one plain sentence (no hype, no urgency).
-   - Prefer plain language over rigid “Label: fact” patterns when it reads more naturally.
-   - Do not pad with filler to hit a bullet count.
+Rules (Amazon Associates Program Policies and FTC endorsement guidelines):
+- Use only facts present in the product title and features. If a detail is missing, leave it out. Never guess specs, sizes, quantities, compatibility or materials.
+- Never mention prices, currency amounts, discounts, savings, "% off", sales, bargains, "cheapest", "lowest price", coupons or promo codes.
+- Never mention or imply customer reviews, star ratings, review counts, rankings, "best seller", "#1", "Amazon's Choice", "top rated" or popularity.
+- Never mention Prime, shipping, delivery, stock levels, availability, warranties or returns.
+- No urgency or scarcity ("limited time", "hurry", "today only", "while stocks last").
+- Don't claim that you or anyone tested, used or owns the product. No testimonials or quotes.
+- No health, medical, safety or legal claims beyond what the source states.
+- Don't mention Amazon, ASINs, affiliate links or commissions; the site adds the required disclosures.
+- No superlatives the facts can't support ("best", "perfect", "ultimate", "must-have").
+- Plain, friendly English. No ALL CAPS. At most two emoji, or none.
 
-Return ONLY valid JSON (no markdown fences, no extra keys):
+Output:
+1. title: the real product name, lightly cleaned up (remove keyword stuffing, repeated model numbers and ALL CAPS). Keep the brand and the key identifying details. At most 90 characters.
+2. description:
+   - One or two opening sentences in your own words: what it is and who it suits.
+   - Then 3 to 5 short lines starting with "• ", each one distinct fact from the source in plain words.
+   - One closing sentence suggesting what to check on Amazon before buying (for example size, compatibility or the current price).
+   - 60 to 160 words in total.
 
-{
-  "title": "...",
-  "description": "..."
-}
-
-Product Title:
+Product title:
 {{product_title}}
 
-Product Description:
+Product features:
 {{product_description}}`;
 
-export function isGeminiConfigured() {
-  return Boolean(process.env.GEMINI_API_KEY?.trim());
+export async function isGeminiConfigured(): Promise<boolean> {
+  return Boolean(await getApiConfig("GEMINI_API_KEY"));
 }
 
 export function getDefaultGeminiPrompt() {
@@ -105,19 +102,26 @@ export async function generateProductContent(opts: {
   description: string;
   promptTemplate: string;
 }): Promise<GeminiProductContent> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const apiKey = await getApiConfig("GEMINI_API_KEY");
   if (!apiKey) {
     throw new Error(
-      "Gemini API is not configured. Set GEMINI_API_KEY on the server."
+      "Gemini isn't configured. A Super Admin can add the API key in Admin → Settings → API keys."
     );
   }
 
-  const model = process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash";
+  const model = (await getApiConfig("GEMINI_MODEL")) || DEFAULT_GEMINI_MODEL;
 
   const template = (opts.promptTemplate || DEFAULT_PROMPT).trim();
-  const prompt = template
+  let prompt = template
     .replaceAll("{{product_title}}", opts.title)
     .replaceAll("{{product_description}}", opts.description);
+  // A custom prompt without placeholders would never see the product facts
+  if (!template.includes("{{product_title}}")) {
+    prompt += `\n\nProduct title:\n${opts.title}`;
+  }
+  if (!template.includes("{{product_description}}")) {
+    prompt += `\n\nProduct features:\n${opts.description}`;
+  }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
@@ -133,8 +137,18 @@ export async function generateProductContent(opts: {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.4,
-          maxOutputTokens: 2048,
+          // Headroom for models that spend output tokens on reasoning
+          maxOutputTokens: 8192,
           responseMimeType: "application/json",
+          // Enforce the shape even if an admin's custom prompt omits it
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              title: { type: "STRING" },
+              description: { type: "STRING" },
+            },
+            required: ["title", "description"],
+          },
         },
       }),
     });
@@ -150,9 +164,15 @@ export async function generateProductContent(opts: {
   } | null;
 
   if (!response.ok) {
-    throw new Error(
-      "Gemini could not generate product content. Check the server API key and model name."
-    );
+    const detail =
+      response.status === 404
+        ? `model "${model}" isn't available — pick a current model in Admin → Settings → API keys`
+        : response.status === 400 || response.status === 403
+          ? "the API key was rejected"
+          : response.status === 429
+            ? "the Gemini quota or rate limit was reached"
+            : `HTTP ${response.status}`;
+    throw new Error(`Gemini couldn't generate copy: ${detail}.`);
   }
 
   const text = data?.candidates?.[0]?.content?.parts
@@ -165,4 +185,25 @@ export async function generateProductContent(opts: {
   }
 
   return parseGeminiContent(text);
+}
+
+/** Admin "Test connection": one tiny request with the saved key + model. */
+export async function verifyGemini(): Promise<
+  { ok: true; model: string } | { ok: false; error: string }
+> {
+  try {
+    const result = await generateProductContent({
+      title: "Stainless steel water bottle, 750 ml",
+      description:
+        "Double-wall vacuum insulation\nLeak-proof screw lid\nFits most cup holders",
+      promptTemplate: "",
+    });
+    if (!result.title) return { ok: false, error: "Empty response." };
+    return {
+      ok: true,
+      model: (await getApiConfig("GEMINI_MODEL")) || DEFAULT_GEMINI_MODEL,
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Request failed." };
+  }
 }

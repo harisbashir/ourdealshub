@@ -341,15 +341,18 @@ export async function refreshProductFromAmazon(id: string): Promise<{
 }> {
   const admin = await requireProductAccess();
 
-  if (!isAmazonConfigured()) {
-    return { ok: false, message: "Amazon API is not configured yet." };
-  }
-
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product || product.deletedAt) {
     return { ok: false, message: "Product not found." };
   }
   await assertCanManageProduct(admin, product);
+
+  if (!(await isAmazonConfigured(product.marketplace))) {
+    return {
+      ok: false,
+      message: `Amazon Creators API isn't configured for ${product.marketplace}. Add credentials in Admin → Settings → API keys.`,
+    };
+  }
 
   const asin = product.asin || extractAsin(product.affiliateUrl);
   if (!asin) {
@@ -406,10 +409,11 @@ export async function refreshRecentAmazonImages(): Promise<{
 }> {
   const admin = await requireProductAccess();
 
-  if (!isAmazonConfigured()) {
+  if (!(await isAmazonConfigured())) {
     return {
       ok: false,
-      message: "Amazon API is not configured yet.",
+      message:
+        "Amazon Creators API isn't configured. Add credentials in Admin → Settings → API keys.",
       updated: 0,
     };
   }

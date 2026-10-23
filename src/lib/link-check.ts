@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isSafeAffiliateRedirectUrl } from "@/lib/affiliate-url";
+import { extractAsin } from "@/lib/amazon";
 
 const UNSAFE_URL_DETAIL = "Not a safe Amazon URL";
 
@@ -10,13 +11,43 @@ export type LinkCheckResult = {
   detail: string;
 };
 
+/** Query params that make a URL an Associates Special Link. */
+const AFFILIATE_PARAMS = [
+  "tag",
+  "linkCode",
+  "linkId",
+  "ascsubtag",
+  "creative",
+  "creativeASIN",
+  "camp",
+  "ref_",
+];
+
 /**
- * HEAD/GET probe Amazon affiliate URL. Soft check — Amazon may block bots.
+ * The plain product page to probe. Never request the tagged Special Link from
+ * a bot — that would generate artificial clicks on the tag (Program Policies
+ * §6(s)). Returns null for URLs that aren't safe Amazon links.
+ */
+export function linkCheckProbeUrl(affiliateUrl: string): string | null {
+  if (!isSafeAffiliateRedirectUrl(affiliateUrl)) return null;
+  const url = new URL(affiliateUrl.trim());
+  const asin = extractAsin(affiliateUrl);
+  if (asin && /amazon\./i.test(url.hostname)) {
+    return `${url.protocol}//${url.hostname}/dp/${asin}`;
+  }
+  for (const p of AFFILIATE_PARAMS) url.searchParams.delete(p);
+  return url.toString();
+}
+
+/**
+ * HEAD/GET probe of the untagged Amazon product page. Soft check — Amazon may
+ * block bots, which yields "unknown", never "broken".
  */
 export async function checkAffiliateLink(
-  url: string
+  affiliateUrl: string
 ): Promise<{ status: "ok" | "broken" | "unknown"; detail: string }> {
-  if (!isSafeAffiliateRedirectUrl(url)) {
+  const url = linkCheckProbeUrl(affiliateUrl);
+  if (!url) {
     return { status: "broken", detail: UNSAFE_URL_DETAIL };
   }
   try {

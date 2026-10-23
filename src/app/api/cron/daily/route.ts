@@ -66,7 +66,16 @@ export async function GET(req: Request) {
     }
   }
 
-  // Re-check affiliate links (flag broken for digest + admin list)
+  // Refresh Amazon data via the Creators API (24h caching limit, removed items)
+  let sync = { refreshed: 0, flagged: 0, unpublished: 0, skipped: 0, errors: 0 };
+  try {
+    const { syncAmazonProducts } = await import("@/lib/amazon-sync");
+    sync = await syncAmazonProducts();
+  } catch {
+    /* non-fatal */
+  }
+
+  // Re-check affiliate links not covered by the API refresh (untagged probe)
   let linksChecked = 0;
   let linksBroken = 0;
   try {
@@ -109,7 +118,7 @@ export async function GET(req: Request) {
 
   const clicksPruned = await pruneOldClickEvents();
 
-  const summary = `published=${publishedCount}; linksChecked=${linksChecked}; linksBroken=${linksBroken}; telegramOk=${telegramOk}; clicksPruned=${clicksPruned}`;
+  const summary = `published=${publishedCount}; amazonRefreshed=${sync.refreshed}; amazonFlagged=${sync.flagged}; amazonUnpublished=${sync.unpublished}; linksChecked=${linksChecked}; linksBroken=${linksBroken}; telegramOk=${telegramOk}; clicksPruned=${clicksPruned}`;
 
   await prisma.siteSettings.upsert({
     where: { id: "default" },
@@ -129,6 +138,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ok: true,
     publishedCount,
+    amazon: sync,
     telegramOk,
     clicksPruned,
     linksChecked,

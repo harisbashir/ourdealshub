@@ -153,7 +153,19 @@ model SiteSettings {
   cronLastRunAt        DateTime?
   cronLastOk           Boolean  @default(false)
   cronLastSummary      String?
+  /// Accent colour preset for the whole site (see src/lib/theme.ts)
+  accentTheme          String   @default("tangerine")
   updatedAt            DateTime @updatedAt
+}
+
+/// API keys managed from Admin → Settings (Super Admin). Values are sealed with
+/// secret-box (AES-GCM, key from AUTH_SECRET). Env vars of the same name are the fallback.
+model ApiCredential {
+  /// e.g. GEMINI_API_KEY, AMAZON_US_CREDENTIAL_ID (see src/lib/api-config.ts)
+  key         String   @id
+  value       String
+  updatedById String?
+  updatedAt   DateTime @updatedAt
 }
 
 /// Durable rate-limit counters (shared across Node/serverless instances)

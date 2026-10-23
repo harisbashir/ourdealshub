@@ -10,12 +10,8 @@ export type MarketplaceConfig = {
   badge: string;
   /** User-facing store label */
   label: string;
-  /** PA-API Marketplace field */
+  /** Creators API marketplace / x-marketplace value */
   marketplaceHost: string;
-  /** PA-API endpoint host */
-  paapiHost: string;
-  /** Signing region */
-  region: string;
   /** Retail hostname without www */
   retailHost: string;
 };
@@ -26,8 +22,6 @@ export const MARKETPLACES: Record<MarketplaceCode, MarketplaceConfig> = {
     badge: "US",
     label: "Amazon.com (US)",
     marketplaceHost: "www.amazon.com",
-    paapiHost: "webservices.amazon.com",
-    region: "us-east-1",
     retailHost: "amazon.com",
   },
   UK: {
@@ -35,8 +29,6 @@ export const MARKETPLACES: Record<MarketplaceCode, MarketplaceConfig> = {
     badge: "UK",
     label: "Amazon.co.uk (UK)",
     marketplaceHost: "www.amazon.co.uk",
-    paapiHost: "webservices.amazon.co.uk",
-    region: "eu-west-1",
     retailHost: "amazon.co.uk",
   },
 };
@@ -78,13 +70,12 @@ export function marketplaceBadge(code: string | null | undefined): string {
   return MARKETPLACES[parseMarketplace(code)].badge;
 }
 
-/** Tailwind classes for a prominent US/UK store tag (public + admin). */
-export function marketplaceTagClass(code: string | null | undefined): string {
-  const market = parseMarketplace(code);
-  if (market === "UK") {
-    return "border-sky-500/50 bg-sky-500 text-white shadow-sm shadow-sky-500/30";
-  }
-  return "border-brand/50 bg-brand text-white shadow-sm shadow-brand/30";
+/**
+ * Classes for the small US/UK store tag. Neutral on purpose: the accent colour
+ * means "action" everywhere, so the store is told apart by its text label.
+ */
+export function marketplaceTagClass(_code?: string | null): string {
+  return "border-border bg-card text-foreground";
 }
 
 /** URL / filter param → US | UK | null (all). */
@@ -100,9 +91,9 @@ export function parseMarketplaceFilter(
 export function marketplaceShipsNote(code: string | null | undefined): string {
   const market = parseMarketplace(code);
   if (market === "UK") {
-    return "This deal opens on Amazon.co.uk (UK store). Availability and pricing follow the UK marketplace.";
+    return "Opens on Amazon.co.uk (UK store). Price and availability are shown on Amazon.";
   }
-  return "This deal opens on Amazon.com (US store). Availability and pricing follow the US marketplace.";
+  return "Opens on Amazon.com (US store). Price and availability are shown on Amazon.";
 }
 
 /** One-line store cue for social captions. */

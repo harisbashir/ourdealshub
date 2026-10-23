@@ -205,13 +205,13 @@ export async function importProductFromUrl(
 
   const failures: string[] = [];
 
-  if (!isAmazonConfigured()) {
+  if (!(await isAmazonConfigured(marketplace))) {
     mark("amazon", "failed");
+    const msg = `Amazon Creators API isn't configured for ${marketplace}. A Super Admin can add credentials in Admin → Settings → API keys, or add this deal manually.`;
     return {
       ok: false,
-      error:
-        "Amazon API is not configured on the server. Add AMAZON_* env vars.",
-      failures: ["Amazon API credentials missing"],
+      error: msg,
+      failures: [msg],
       steps,
     };
   }
@@ -274,7 +274,7 @@ export async function importProductFromUrl(
   let productDescription = fetched.description;
   let dealPost = fetched.description;
 
-  if (!isGeminiConfigured()) {
+  if (!(await isGeminiConfigured())) {
     mark("gemini", "skipped");
     failures.push(
       "Gemini API is not configured — using Amazon title/description."
@@ -727,9 +727,14 @@ function markDone(steps: ImportStep[]) {
 export async function updateSiteSettings(formData: FormData) {
   await requireSuperAdmin();
 
+  // Store "" when the prompt is the built-in one (or reset), so improvements
+  // to the recommended prompt reach this site instead of a frozen copy.
+  const submittedPrompt = String(formData.get("geminiPromptTemplate") || "").trim();
   const geminiPromptTemplate =
-    String(formData.get("geminiPromptTemplate") || "").trim() ||
-    getDefaultGeminiPrompt();
+    formData.get("resetPrompt") === "1" ||
+    submittedPrompt === getDefaultGeminiPrompt().trim()
+      ? ""
+      : submittedPrompt.slice(0, 20000);
   const autoPublish = formData.get("autoPublish") === "on";
   const socialAutoPost = formData.get("socialAutoPost") === "on";
   const defaultCategoryId =

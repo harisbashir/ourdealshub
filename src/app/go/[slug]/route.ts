@@ -85,7 +85,10 @@ export async function GET(req: Request, { params }: Props) {
     "no-store, no-cache, must-revalidate, private"
   );
   res.headers.set("Pragma", "no-cache");
-  res.headers.set("Referrer-Policy", "no-referrer");
+  // Amazon must see that the click came from this site (Associates Program
+  // Policies §6(v) forbid hiding the referring site, incl. via redirects).
+  // Sends only the origin, never the path or query.
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   return res;
 }
 

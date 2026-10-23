@@ -28,3 +28,15 @@ export const AFFILIATE_CHROME_LINE =
 
 export const AMAZON_PROGRAM_BLURB =
   "OurDealsHub is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com and affiliated sites.";
+
+/**
+ * rel for every outbound Amazon (Special Link) anchor. Deliberately NOT
+ * "noreferrer": Amazon must be able to see which site sent the click
+ * (Participation Requirements §6(v): don't "cloak, hide, spoof, or otherwise
+ * obscure the URL of your Site … including by use of Redirecting Links").
+ */
+export const AFFILIATE_LINK_REL = "sponsored nofollow noopener";
+
+/** Required when showing text that came from Amazon's API (IP License §2(k)). */
+export const AMAZON_CONTENT_NOTICE =
+  "Certain content that appears on OurDealsHub comes from Amazon. This content is provided 'as is' and is subject to change or removal at any time.";

@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { getDefaultGeminiPrompt } from "@/lib/gemini";
+import { parseAccent, DEFAULT_ACCENT, type AccentId } from "@/lib/theme";
 
 export type AppSettings = {
   geminiPromptTemplate: string;
   autoPublish: boolean;
   defaultCategoryId: string | null;
   socialAutoPost: boolean;
+  accentTheme: AccentId;
 };
 
 export async function getSiteSettings(): Promise<AppSettings> {
@@ -26,7 +28,24 @@ export async function getSiteSettings(): Promise<AppSettings> {
     autoPublish: row.autoPublish,
     defaultCategoryId: row.defaultCategoryId,
     socialAutoPost: row.socialAutoPost ?? true,
+    accentTheme: parseAccent(row.accentTheme),
   };
+}
+
+/**
+ * Accent preset for layouts. Never throws — a DB hiccup must not take the
+ * whole site down just to pick a colour.
+ */
+export async function getAccentTheme(): Promise<AccentId> {
+  try {
+    const row = await prisma.siteSettings.findUnique({
+      where: { id: "default" },
+      select: { accentTheme: true },
+    });
+    return parseAccent(row?.accentTheme);
+  } catch {
+    return DEFAULT_ACCENT;
+  }
 }
 
 export async function resolveDefaultCategoryId(
