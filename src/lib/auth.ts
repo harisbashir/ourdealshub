@@ -51,6 +51,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         if (!user || !user.isActive || !valid) return null;
 
+        // Successful sign-in: forget earlier failures for this email + IP so a
+        // real admin signing in on several devices never locks themselves out
+        await prisma.rateBucket
+          .delete({ where: { key: `login:${email}:${ip}` } })
+          .catch(() => {});
+
         return {
           id: user.id,
           email: user.email,
