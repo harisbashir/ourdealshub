@@ -18,6 +18,8 @@ export function readMarketPreference(): MarketPreference | null {
   return null;
 }
 
+const listeners = new Set<() => void>();
+
 export function writeMarketPreference(value: MarketPreference): void {
   if (typeof window === "undefined") return;
   try {
@@ -25,6 +27,18 @@ export function writeMarketPreference(value: MarketPreference): void {
   } catch {
     /* ignore */
   }
+  for (const l of listeners) l();
+}
+
+/** useSyncExternalStore subscription (same-tab writes + other tabs). */
+export function subscribeMarketPreference(listener: () => void) {
+  listeners.add(listener);
+  const onStorage = (e: StorageEvent) => e.key === MARKET_PREF_KEY && listener();
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 export function marketQuerySuffix(market: string | null | undefined): string {

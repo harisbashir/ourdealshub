@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   readMarketPreference,
+  subscribeMarketPreference,
   writeMarketPreference,
   type MarketPreference,
 } from "@/lib/market-preference";
@@ -32,8 +33,11 @@ export function MarketplaceFilter({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const urlMarket = (params.get("market") || "").toUpperCase();
+  // Listing pages carry ?market=; elsewhere (Browse, Help…) show the
+  // remembered store so the switch never looks reset
+  const active = useActiveMarket();
   const current: MarketPreference =
-    urlMarket === "US" || urlMarket === "UK" ? urlMarket : "";
+    urlMarket === "US" || urlMarket === "UK" ? urlMarket : active;
 
   useEffect(() => {
     if (urlMarket === "US" || urlMarket === "UK") {
@@ -91,10 +95,14 @@ export function MarketplaceFilter({ className = "" }: { className?: string }) {
 /** Resolve active market from URL, else remembered preference (for nav links). */
 export function useActiveMarket(): MarketPreference {
   const params = useSearchParams();
+  // Server snapshot is "All" so hydration matches; the stored value follows
+  const pref = useSyncExternalStore(
+    subscribeMarketPreference,
+    () => readMarketPreference() ?? "",
+    () => ""
+  );
   const url = (params.get("market") || "").toUpperCase();
   if (url === "US" || url === "UK") return url;
   if (params.has("market")) return "";
-  const pref = readMarketPreference();
-  if (pref === "US" || pref === "UK") return pref;
-  return "";
+  return pref === "US" || pref === "UK" ? pref : "";
 }
