@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ourdealshub-db
+    restart: unless-stopped
+    ports:
+      # Only this PC can reach Postgres (safer than open to the whole network)
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ourdealshub
+      POSTGRES_PASSWORD: ourdealshub
+      POSTGRES_DB: ourdealshub
+    volumes:
+      - ourdealshub_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ourdealshub -d ourdealshub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ourdealshub_pgdata:

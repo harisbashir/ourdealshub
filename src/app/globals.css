@@ -1,0 +1,785 @@
+@import "tailwindcss";
+
+/* Prefer data-theme over prefers-color-scheme */
+@custom-variant dark (&:where([data-theme="dark"] *));
+
+:root {
+  /* Warm wash — must contrast with frosted white glass */
+  --background: #e4d8cc;
+  --foreground: #171717;
+  --card: #f7f1ea;
+  --card-muted: #efe6dc;
+  --border: #c9bdb0;
+  --border-subtle: #ddd2c6;
+  --muted: #6b7280;
+  --muted-fg: #9ca3af;
+  --input-bg: #f9fafb;
+  --admin-bg: #f4f2ef;
+  --admin-header: rgba(255, 255, 255, 0.9);
+  /* Warm deal orange — vivid but not neon */
+  --brand: #f97316;
+  --brand-dark: #ea580c;
+  --brand-soft: #fff7ed;
+  --brand-rgb: 249, 115, 22;
+  --savings: #38a169;
+}
+
+[data-theme="dark"] {
+  /* Slightly lifted surfaces so cards separate from page bg */
+  --background: #0c0e13;
+  --foreground: #f5f6f8;
+  --card: #1a1f2b;
+  --card-muted: #222836;
+  --border: #3d4658;
+  --border-subtle: #2c3342;
+  --muted: #b4bcc9;
+  --muted-fg: #8b93a3;
+  --input-bg: #222836;
+  --admin-bg: #0e1118;
+  --admin-header: rgba(26, 31, 43, 0.94);
+  /* Brighter orange so hover/active reads clearly on dark UI */
+  --brand: #ff9448;
+  --brand-dark: #ffaa6b;
+  --brand-soft: rgba(255, 148, 72, 0.22);
+  --brand-rgb: 255, 148, 72;
+  --savings: #4ade80;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-muted: var(--card-muted);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-muted: var(--muted);
+  --color-muted-fg: var(--muted-fg);
+  --color-input-bg: var(--input-bg);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-soft: var(--brand-soft);
+  --color-savings: var(--savings);
+  --font-sans: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+}
+
+body {
+  color: var(--foreground);
+  font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  /* !important: beats Tailwind bg-background so light glass is visible */
+  background-color: #e4d8cc !important;
+  background-image:
+    radial-gradient(ellipse 95% 60% at 0% 0%, rgba(249, 115, 22, 0.34), transparent 55%),
+    radial-gradient(ellipse 75% 50% at 100% 0%, rgba(14, 116, 144, 0.18), transparent 52%),
+    radial-gradient(ellipse 65% 45% at 60% 100%, rgba(180, 83, 9, 0.12), transparent 55%),
+    linear-gradient(180deg, #eadfd4 0%, #dce6ef 50%, #e4d8cc 100%) !important;
+  background-attachment: fixed !important;
+}
+[data-theme="dark"] body {
+  background-color: #0c0e13 !important;
+  background-image:
+    radial-gradient(ellipse 90% 55% at 0% 0%, rgba(255, 148, 72, 0.22), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 8%, rgba(56, 120, 200, 0.14), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 40% 100%, rgba(255, 148, 72, 0.1), transparent 55%),
+    linear-gradient(180deg, #0c0e13 0%, #121826 100%) !important;
+}
+
+/*
+ * === FROSTED GLASS (visible trial) ===
+ * Delete this block to go back to solid cards.
+ */
+.site-chrome {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 10px 28px -16px rgba(15, 23, 42, 0.18);
+}
+[data-theme="dark"] .site-chrome {
+  background: rgba(12, 14, 19, 0.55) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 32px -16px rgba(0, 0, 0, 0.55);
+}
+
+.product-card {
+  /* Light: translucent + dark edge (white border was invisible) */
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.32)) !important;
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border: 1.5px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 16px 36px -18px rgba(15, 23, 42, 0.28) !important;
+}
+[data-theme="dark"] .product-card {
+  background:
+    linear-gradient(165deg, rgba(40, 48, 64, 0.75), rgba(26, 31, 43, 0.5)) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 18px 40px -18px rgba(0, 0, 0, 0.55) !important;
+}
+
+.feature-banner {
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 16px 40px -18px rgba(15, 23, 42, 0.3) !important;
+}
+[data-theme="dark"] .feature-banner {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+.feature-banner-glass {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1.5px solid rgba(15, 23, 42, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 24px -10px rgba(0, 0, 0, 0.28);
+  color: #111;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
+}
+.feature-banner-glass h2 {
+  color: #111 !important;
+  text-shadow: none !important;
+  transition: color 0.22s ease;
+}
+.feature-banner-glass p {
+  color: rgba(17, 17, 17, 0.72) !important;
+}
+[data-theme="dark"] .feature-banner-glass {
+  background: rgba(20, 24, 34, 0.78);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #f5f6f8;
+}
+[data-theme="dark"] .feature-banner-glass h2 {
+  color: #f5f6f8 !important;
+}
+[data-theme="dark"] .feature-banner-glass p {
+  color: rgba(245, 246, 248, 0.8) !important;
+}
+
+.brand-chip {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.38)) !important;
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1.5px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 20px -12px rgba(15, 23, 42, 0.22) !important;
+}
+[data-theme="dark"] .brand-chip {
+  background:
+    linear-gradient(165deg, rgba(40, 48, 64, 0.7), rgba(26, 31, 43, 0.45)) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Header category mini-cards — light: dark edge so glass is visible */
+.cat-pill {
+  color: var(--foreground);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.36)) !important;
+  backdrop-filter: blur(18px) saturate(1.45);
+  -webkit-backdrop-filter: blur(18px) saturate(1.45);
+  border: 1.5px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 22px -12px rgba(15, 23, 42, 0.22) !important;
+}
+[data-theme="dark"] .cat-pill {
+  color: var(--foreground);
+  background:
+    linear-gradient(165deg, rgba(48, 56, 74, 0.72), rgba(26, 31, 43, 0.48)) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 22px -14px rgba(0, 0, 0, 0.45) !important;
+}
+.cat-pill--active {
+  color: #fff !important;
+  background:
+    linear-gradient(165deg, rgba(var(--brand-rgb), 0.95), rgba(var(--brand-rgb), 0.78)) !important;
+  border-color: rgba(var(--brand-rgb), 0.65) !important;
+  /* Light: stronger orange halo — soft fill was invisible on warm wash */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 0 1px rgba(var(--brand-rgb), 0.25),
+    0 8px 20px -8px rgba(var(--brand-rgb), 0.65),
+    0 14px 28px -10px rgba(var(--brand-rgb), 0.4) !important;
+}
+[data-theme="dark"] .cat-pill--active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px rgba(var(--brand-rgb), 0.35),
+    0 10px 22px -8px rgba(var(--brand-rgb), 0.6) !important;
+}
+
+.header-glass-btn {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.36)) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 18px -12px rgba(15, 23, 42, 0.18);
+}
+[data-theme="dark"] .header-glass-btn {
+  background:
+    linear-gradient(165deg, rgba(48, 56, 74, 0.7), rgba(26, 31, 43, 0.45)) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.admin-shell {
+  background-color: #ebe4dc !important;
+  background-image:
+    radial-gradient(ellipse 90% 55% at 0% 0%, rgba(249, 115, 22, 0.2), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(14, 116, 144, 0.1), transparent 50%) !important;
+}
+[data-theme="dark"] .admin-shell {
+  background-color: #0e1118 !important;
+}
+
+.admin-shell .admin-deal-card,
+.admin-shell main section.rounded-2xl.border,
+.admin-shell main .rounded-2xl.border.shadow-sm,
+.admin-shell main .rounded-xl.border.shadow-sm {
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 30px -16px rgba(15, 23, 42, 0.2) !important;
+}
+[data-theme="dark"] .admin-shell .admin-deal-card,
+[data-theme="dark"] .admin-shell main section.rounded-2xl.border,
+[data-theme="dark"] .admin-shell main .rounded-2xl.border.shadow-sm,
+[data-theme="dark"] .admin-shell main .rounded-xl.border.shadow-sm {
+  background: rgba(26, 31, 43, 0.45) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.admin-header {
+  background: rgba(255, 255, 255, 0.42) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+[data-theme="dark"] .admin-header {
+  background: rgba(12, 14, 19, 0.55) !important;
+}
+/* Mobile: lighter blur — backdrop-filter is expensive on low-end phones */
+@media (max-width: 640px) {
+  .site-chrome,
+  .product-card,
+  .cat-pill,
+  .header-glass-btn,
+  .feature-banner-glass,
+  .brand-chip,
+  .site-search-input {
+    backdrop-filter: blur(10px) saturate(1.2);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card,
+  .cat-pill,
+  .feature-banner {
+    transition: none !important;
+  }
+  .product-card:hover,
+  .product-card:focus-within,
+  .cat-pill:not(.cat-pill--active):hover,
+  .cat-pill--active:hover,
+  .feature-banner:hover {
+    transform: none !important;
+  }
+}
+
+/* === END FROSTED GLASS === */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Public site content width — ~1in empty margin each side on desktop
+ * (was max-w-7xl / 1280px which left ~2.5in+ on wide screens).
+ */
+.site-container {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 0.75rem;
+}
+@media (min-width: 640px) {
+  .site-container {
+    padding-inline: 1rem;
+  }
+}
+@media (min-width: 1024px) {
+  .site-container {
+    max-width: calc(100vw - 2in);
+    padding-inline: 1rem;
+  }
+}
+
+/* Header brand chip — orange border on hover */
+.brand-chip {
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+.brand-chip:hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(var(--brand-rgb), 0.3),
+    0 8px 18px -12px rgba(var(--brand-rgb), 0.45) !important;
+}
+[data-theme="dark"] .brand-chip:hover {
+  box-shadow:
+    0 0 0 2px rgba(var(--brand-rgb), 0.45),
+    0 10px 20px -12px rgba(var(--brand-rgb), 0.5);
+}
+
+/* Search always shows orange edge + frosted fill */
+.site-search-input {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.38)) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: rgb(var(--brand-rgb)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 0 0 1px rgba(var(--brand-rgb), 0.2);
+}
+[data-theme="dark"] .site-search-input {
+  background:
+    linear-gradient(165deg, rgba(40, 48, 64, 0.7), rgba(26, 31, 43, 0.45)) !important;
+}
+.site-search-input:focus {
+  border-color: rgb(var(--brand-rgb)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(var(--brand-rgb), 0.35),
+    0 0 0 3px rgba(var(--brand-rgb), 0.15);
+}
+/* Search icon — strong orange (especially dark theme) */
+.site-search-icon {
+  color: #e86a12;
+  opacity: 1;
+}
+[data-theme="dark"] .site-search-icon {
+  color: #ffb84d;
+  filter: drop-shadow(0 0 2px rgba(255, 170, 70, 0.7));
+}
+/* Placeholder fully readable */
+.site-search-input::placeholder {
+  color: rgba(120, 72, 36, 0.85);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  opacity: 1;
+}
+[data-theme="dark"] .site-search-input::placeholder {
+  color: rgba(255, 190, 130, 0.9);
+}
+
+.product-card {
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.2s ease;
+}
+.product-card:hover,
+.product-card:focus-within {
+  transform: translateY(-4px);
+  border-color: rgba(var(--brand-rgb), 0.65) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 12px 24px -10px rgba(var(--brand-rgb), 0.35),
+    0 4px 10px -4px rgba(15, 23, 42, 0.1),
+    0 0 0 2px rgba(var(--brand-rgb), 0.28) !important;
+}
+[data-theme="dark"] .product-card:hover,
+[data-theme="dark"] .product-card:focus-within {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 12px 24px -10px rgba(0, 0, 0, 0.45),
+    0 0 0 2px rgba(var(--brand-rgb), 0.45) !important;
+}
+.product-card:active {
+  transform: translateY(-2px);
+  border-color: rgba(var(--brand-rgb), 0.35);
+}
+
+/* Category pills under header */
+.cat-pill {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    filter 0.18s ease;
+}
+.cat-pill:not(.cat-pill--active):hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--brand-rgb), 0.6) !important;
+  color: var(--brand) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 12px 24px -10px rgba(var(--brand-rgb), 0.5),
+    0 0 0 2px rgba(var(--brand-rgb), 0.22) !important;
+}
+/* Active (e.g. Trending on home) also needs hover glow — was missing */
+.cat-pill--active:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  border-color: rgba(var(--brand-rgb), 0.9) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 2px rgba(var(--brand-rgb), 0.35),
+    0 12px 26px -8px rgba(var(--brand-rgb), 0.75),
+    0 18px 36px -10px rgba(var(--brand-rgb), 0.45) !important;
+}
+[data-theme="dark"] .cat-pill--active:hover {
+  filter: brightness(1.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 2px rgba(var(--brand-rgb), 0.5),
+    0 14px 28px -8px rgba(var(--brand-rgb), 0.7) !important;
+}
+
+/* Today's Best Deals banner cards */
+.feature-banner {
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+.feature-banner:hover {
+  transform: translateY(-6px) scale(1.015);
+  border-color: rgba(var(--brand-rgb), 0.6) !important;
+  box-shadow:
+    0 20px 36px -14px rgba(var(--brand-rgb), 0.35),
+    0 0 0 3px rgba(var(--brand-rgb), 0.28) !important;
+}
+[data-theme="dark"] .feature-banner:hover {
+  box-shadow:
+    0 20px 36px -12px rgba(0, 0, 0, 0.55),
+    0 0 0 3px rgba(var(--brand-rgb), 0.4) !important;
+}
+.feature-banner:hover .feature-banner-shine {
+  opacity: 1;
+}
+/* Inner glass label — orange glow on parent hover */
+.feature-banner:hover .feature-banner-glass {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(var(--brand-rgb), 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 0 0 2px rgba(var(--brand-rgb), 0.28),
+    0 12px 28px -10px rgba(var(--brand-rgb), 0.55);
+}
+.feature-banner:hover .feature-banner-glass h2 {
+  color: rgb(var(--brand-rgb)) !important;
+}
+[data-theme="dark"] .feature-banner:hover .feature-banner-glass {
+  background: rgba(28, 34, 48, 0.92);
+  border-color: rgba(var(--brand-rgb), 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 2px rgba(var(--brand-rgb), 0.4),
+    0 14px 30px -10px rgba(var(--brand-rgb), 0.55);
+}
+[data-theme="dark"] .feature-banner:hover .feature-banner-glass h2 {
+  color: rgb(var(--brand-rgb)) !important;
+}
+
+/* Admin console */
+.admin-shell {
+  background-color: var(--admin-bg);
+  background-image:
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(var(--brand-rgb), 0.07), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(15, 23, 42, 0.03), transparent 45%);
+}
+[data-theme="dark"] .admin-shell {
+  background-image:
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(var(--brand-rgb), 0.12), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(0, 0, 0, 0.25), transparent 45%);
+}
+
+/* Dark: remap hardcoded white/stone admin surfaces to theme tokens */
+[data-theme="dark"] .admin-shell [class*="bg-white"] {
+  background-color: var(--card) !important;
+}
+[data-theme="dark"] .admin-shell [class*="bg-stone-50"],
+[data-theme="dark"] .admin-shell [class*="bg-gray-50"] {
+  background-color: var(--card-muted) !important;
+}
+[data-theme="dark"] .admin-shell [class*="border-stone"],
+[data-theme="dark"] .admin-shell [class*="border-gray-100"],
+[data-theme="dark"] .admin-shell [class*="border-gray-200"] {
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .admin-shell [class*="text-gray-900"],
+[data-theme="dark"] .admin-shell [class*="text-gray-800"] {
+  color: var(--foreground) !important;
+}
+[data-theme="dark"] .admin-shell [class*="text-gray-600"],
+[data-theme="dark"] .admin-shell [class*="text-gray-500"],
+[data-theme="dark"] .admin-shell [class*="text-stone-500"] {
+  color: var(--muted) !important;
+}
+
+.admin-header {
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  background-color: var(--admin-header);
+}
+[data-theme="dark"] .admin-header {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.admin-nav-link {
+  border-radius: 0.75rem;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.admin-nav-link:not(.admin-nav-link--active):hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  background-color: var(--brand-soft) !important;
+  color: var(--brand) !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 2px rgba(var(--brand-rgb), 0.22),
+    0 8px 16px -8px rgba(var(--brand-rgb), 0.45);
+}
+.admin-nav-link:not(.admin-nav-link--active):active {
+  transform: translateY(0);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.35);
+}
+[data-theme="dark"] .admin-nav-link:not(.admin-nav-link--active):hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  background-color: rgba(var(--brand-rgb), 0.32) !important;
+  color: #ffb06a !important;
+  box-shadow:
+    0 0 0 2px rgba(var(--brand-rgb), 0.45),
+    0 10px 20px -8px rgba(var(--brand-rgb), 0.55);
+}
+[data-theme="dark"] .admin-nav-link--active {
+  box-shadow:
+    0 0 0 1px rgba(var(--brand-rgb), 0.5),
+    0 8px 18px -6px rgba(var(--brand-rgb), 0.55);
+}
+
+/*
+ * Force-visible orange hover across admin (Tailwind brand/opacity
+ * variants can fail when brand is a CSS variable).
+ */
+.admin-shell [class*="hover:border-brand"]:hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  box-shadow:
+    0 0 0 1px rgba(var(--brand-rgb), 0.35),
+    0 10px 22px -12px rgba(var(--brand-rgb), 0.45) !important;
+}
+.admin-shell .group:hover[class*="hover:border-brand"] {
+  border-color: rgb(var(--brand-rgb)) !important;
+  box-shadow:
+    0 0 0 1px rgba(var(--brand-rgb), 0.35),
+    0 10px 22px -12px rgba(var(--brand-rgb), 0.45) !important;
+}
+.admin-shell [class*="hover:text-brand"]:hover {
+  color: var(--brand) !important;
+}
+.admin-shell [class*="hover:bg-orange"]:hover,
+.admin-shell [class*="hover:bg-brand-soft"]:hover {
+  background-color: var(--brand-soft) !important;
+}
+/* Don't orange-wash full-width accordion headers (e.g. go-live card) */
+.admin-shell button.w-full[class*="hover:bg-brand-soft"]:hover {
+  background-color: transparent !important;
+}
+.admin-shell .group:hover [class*="group-hover:border-brand"],
+.admin-shell .group:hover [class*="group-hover:bg-orange"] {
+  border-color: rgba(var(--brand-rgb), 0.35) !important;
+  background-color: var(--brand-soft) !important;
+}
+.admin-shell [class*="hover:bg-brand"]:hover {
+  background-color: var(--brand) !important;
+  color: #fff !important;
+}
+
+/* Card-like admin blocks — orange border only (no fill wash) */
+.admin-shell main section.rounded-2xl:hover,
+.admin-shell main a.rounded-2xl:hover,
+.admin-shell main .rounded-2xl.border.shadow-sm:hover,
+.admin-shell main .rounded-xl.border.shadow-sm:hover:not(.admin-shell-static):not(form),
+.admin-shell .admin-deal-card:hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  box-shadow:
+    0 0 0 1px rgba(var(--brand-rgb), 0.3),
+    0 12px 24px -14px rgba(var(--brand-rgb), 0.4) !important;
+}
+[data-theme="dark"] .admin-shell main section.rounded-2xl:hover,
+[data-theme="dark"] .admin-shell main a.rounded-2xl:hover,
+[data-theme="dark"] .admin-shell main .rounded-2xl.border.shadow-sm:hover,
+[data-theme="dark"] .admin-shell main .rounded-xl.border.shadow-sm:hover:not(.admin-shell-static):not(form),
+[data-theme="dark"] .admin-shell .admin-deal-card:hover {
+  background-color: rgba(26, 31, 43, 0.78) !important;
+  box-shadow:
+    0 0 0 2px rgba(var(--brand-rgb), 0.45),
+    0 14px 28px -12px rgba(var(--brand-rgb), 0.5) !important;
+}
+
+/* Outer listing shell / forms — never orange-wash on hover */
+.admin-shell .admin-shell-static:hover,
+.admin-shell form.admin-shell-static:hover,
+.admin-shell .admin-orange-panel:hover {
+  border-color: rgba(var(--brand-rgb), 0.45) !important;
+  background-color: var(--card) !important;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+}
+
+/* Quiet cards — reserved if needed */
+.admin-shell .admin-no-hover,
+.admin-shell .admin-no-hover:hover,
+.admin-shell .admin-shell-static.admin-no-hover:hover {
+  border-color: var(--border) !important;
+  background-color: var(--card) !important;
+  box-shadow: none !important;
+}
+.admin-shell .admin-no-hover button:hover {
+  background-color: transparent !important;
+}
+
+/* Go-live card — soft orange corner glow + hover (no full orange wash) */
+.admin-shell .admin-go-live-card {
+  border-color: rgba(var(--brand-rgb), 0.28) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--brand-rgb), 0.1),
+    0 1px 2px rgb(0 0 0 / 0.04) !important;
+}
+.admin-shell .admin-go-live-card:hover,
+.admin-shell .admin-shell-static.admin-go-live-card:hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  background-color: var(--card) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--brand-rgb), 0.16),
+    0 0 0 1px rgba(var(--brand-rgb), 0.22),
+    0 10px 22px -14px rgba(var(--brand-rgb), 0.4) !important;
+}
+.admin-shell .admin-go-live-card button:hover {
+  background-color: transparent !important;
+}
+[data-theme="dark"] .admin-shell .admin-go-live-card:hover,
+[data-theme="dark"] .admin-shell .admin-shell-static.admin-go-live-card:hover {
+  background-color: var(--card) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--brand-rgb), 0.18),
+    0 0 0 1px rgba(var(--brand-rgb), 0.35),
+    0 12px 26px -12px rgba(var(--brand-rgb), 0.45) !important;
+}
+
+/* Soft orange corner frame on form panels + inputs */
+.admin-shell .admin-orange-panel {
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--brand-rgb), 0.12),
+    0 1px 2px rgb(0 0 0 / 0.04) !important;
+}
+.admin-shell .admin-orange-panel input:not([type="checkbox"]):not([type="radio"]),
+.admin-shell .admin-orange-panel textarea,
+.admin-shell .admin-orange-panel select {
+  border-color: rgba(var(--brand-rgb), 0.4) !important;
+  box-shadow: inset 0 0 0 1px rgba(var(--brand-rgb), 0.06);
+}
+.admin-shell .admin-orange-panel input:not([type="checkbox"]):not([type="radio"]):focus,
+.admin-shell .admin-orange-panel textarea:focus,
+.admin-shell .admin-orange-panel select:focus {
+  border-color: rgb(var(--brand-rgb)) !important;
+  box-shadow:
+    0 0 0 1px rgba(var(--brand-rgb), 0.25),
+    inset 0 0 0 1px rgba(var(--brand-rgb), 0.08);
+}
+
+.admin-shell .admin-deal-card {
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* Compact controls: orange border + text, never orange fill */
+.admin-shell .admin-edge-btn {
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.admin-shell .admin-edge-btn:hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  color: var(--brand) !important;
+  background-color: var(--card) !important;
+  box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.35);
+}
+[data-theme="dark"] .admin-shell .admin-edge-btn:hover {
+  color: #ffb06a !important;
+  background-color: var(--card) !important;
+  box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.5);
+}
+
+.admin-shell .admin-icon-btn {
+  border: 1px solid transparent;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.admin-shell .admin-icon-btn:hover {
+  border-color: rgb(var(--brand-rgb)) !important;
+  color: var(--brand) !important;
+  background-color: transparent !important;
+  box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.3);
+}
+[data-theme="dark"] .admin-shell .admin-icon-btn:hover {
+  color: #ffb06a !important;
+}
+.admin-shell .admin-icon-btn--danger:hover {
+  border-color: rgb(239 68 68) !important;
+  color: rgb(239 68 68) !important;
+  background-color: transparent !important;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35);
+}
+.admin-shell .admin-icon-btn--ok:hover {
+  border-color: rgb(16 185 129) !important;
+  color: rgb(16 185 129) !important;
+  background-color: transparent !important;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35);
+}

@@ -1,0 +1,30 @@
+/**
+ * Amazon Associates + FTC disclosure copy.
+ * Per Associates Central (OA + Help):
+ * 1) Site statement: “As an Amazon Associate I earn from qualifying purchases.”
+ *    (or substantially similar)
+ * 2) Link-level near each Special Link: clear + conspicuous — e.g. “(paid link)”,
+ *    “#ad”, or “#CommissionsEarned”
+ * (Not legal advice — follow current Associates Operating Agreement.)
+ */
+
+/** Operating Agreement–style site / account statement. */
+export const AMAZON_ASSOCIATE_STATEMENT =
+  "As an Amazon Associate, OurDealsHub earns from qualifying purchases.";
+
+/**
+ * Link-level disclosure — place immediately next to each Special Link / CTA
+ * (Amazon Associates Help: clear & conspicuous).
+ */
+export const LINK_LEVEL_DISCLOSURE = "(paid link)";
+
+/** Short helper under card / sticky CTAs. */
+export const AFFILIATE_LINK_NOTE =
+  "We may earn a commission at no extra cost to you.";
+
+/** One-line site chrome (header/category bar). */
+export const AFFILIATE_CHROME_LINE =
+  "As an Amazon Associate, OurDealsHub earns from qualifying purchases.";
+
+export const AMAZON_PROGRAM_BLURB =
+  "OurDealsHub is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com and affiliated sites.";

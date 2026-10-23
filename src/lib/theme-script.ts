@@ -1,0 +1,2 @@
+/** Inline before paint — avoids light flash when dark is preferred. */
+export const themeInitScript = `(function(){try{var k='odh-theme';var t=localStorage.getItem(k)||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;

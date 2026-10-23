@@ -1,0 +1,89 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getSessionAdmin } from "@/lib/admin-auth";
+import { canAccessProducts } from "@/lib/permissions";
+import { isAmazonConfigured, lookupAmazonProduct } from "@/lib/amazon";
+import { clientIp } from "@/lib/rate-limit";
+import { rateLimitDurable } from "@/lib/rate-limit-durable";
+import {
+  getAdminTrackingId,
+  MISSING_TRACKING_ID_MESSAGE,
+} from "@/lib/admin-tracking";
+
+const bodySchema = z.object({
+  query: z.string().min(3).max(500),
+});
+
+export async function POST(req: Request) {
+  try {
+    const admin = await getSessionAdmin();
+    if (!admin || !canAccessProducts(admin)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const limited = await rateLimitDurable(
+      `amazon:${admin.id}:${clientIp(req)}`,
+      20,
+      60 * 60_000
+    );
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Amazon lookup rate limit reached. Try again later." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limited.retryAfterSec) },
+        }
+      );
+    }
+
+    if (!isAmazonConfigured()) {
+      return NextResponse.json(
+        {
+          error:
+            "Amazon API is not configured on the server. Add credentials to environment variables.",
+        },
+        { status: 503 }
+      );
+    }
+
+    const trackingId = await getAdminTrackingId(admin.id);
+    if (!trackingId) {
+      return NextResponse.json(
+        { error: MISSING_TRACKING_ID_MESSAGE },
+        { status: 403 }
+      );
+    }
+
+    const json = await req.json().catch(() => null);
+    const parsed = bodySchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Provide an Amazon product URL or ASIN." },
+        { status: 400 }
+      );
+    }
+
+    // Partner tag always from DB — never from request body
+    const product = await lookupAmazonProduct(parsed.data.query, trackingId);
+    return NextResponse.json({ product });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Amazon lookup failed.";
+    const safe = message
+      .replace(/AKIA[0-9A-Z]{16}/g, "[redacted]")
+      .replace(/Secret=?[^\s]+/gi, "[redacted]");
+    return NextResponse.json({ error: safe }, { status: 400 });
+  }
+}
+
+export async function GET() {
+  const admin = await getSessionAdmin();
+  if (!admin || !canAccessProducts(admin)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const trackingId = await getAdminTrackingId(admin.id);
+  return NextResponse.json({
+    configured: isAmazonConfigured(),
+    hasTrackingId: Boolean(trackingId),
+  });
+}
