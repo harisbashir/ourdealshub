@@ -31,7 +31,8 @@ export function DeleteCategoryButton({
             : `Delete ${childCount} subcategory(ies) first`
           : "Delete category"
       }
-      className="admin-icon-btn admin-icon-btn--danger rounded p-1.5 text-muted disabled:opacity-40 disabled:cursor-not-allowed"
+      aria-label={`Delete category ${categoryName}`}
+      className="pressable inline-flex h-11 w-11 items-center justify-center rounded-full text-muted hover:bg-card-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
       onClick={() => {
         if (blocked) return;
         const ok = window.confirm(
@@ -49,7 +50,7 @@ export function DeleteCategoryButton({
         });
       }}
     >
-      <Trash2 className="h-4 w-4" />
+      <Trash2 className="h-[18px] w-[18px]" aria-hidden />
     </button>
   );
 }

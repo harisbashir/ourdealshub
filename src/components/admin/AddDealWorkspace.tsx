@@ -1,5 +1,7 @@
 "use client";
 
+import type { FormState } from "@/lib/form-state";
+
 import { useState } from "react";
 import { QuickAddProduct } from "@/components/admin/QuickAddProduct";
 import { ProductForm } from "@/components/admin/ProductForm";
@@ -27,7 +29,7 @@ export function AddDealWorkspace({
   hasTrackingIdUk?: boolean;
   trackingIdLabelUk?: string | null;
   isSuperAdminUser?: boolean;
-  createAction: (formData: FormData) => Promise<void>;
+  createAction: (state: FormState, formData: FormData) => Promise<FormState>;
 }) {
   const [mode, setMode] = useState<"auto" | "manual">("auto");
 

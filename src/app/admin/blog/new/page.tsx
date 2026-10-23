@@ -1,5 +1,5 @@
 import { assertSuperAdminPage } from "@/lib/admin-actions";
-import { createBlogPost } from "@/lib/blog-actions";
+import { createBlogPostForm } from "@/lib/form-actions";
 import { BlogForm } from "@/components/admin/BlogForm";
 import { prisma } from "@/lib/prisma";
 import { publicProductWhere } from "@/lib/product-query";
@@ -18,7 +18,7 @@ export default async function NewBlogPostPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-6">New blog post</h1>
-      <BlogForm action={createBlogPost} products={products} />
+      <BlogForm action={createBlogPostForm} products={products} />
     </div>
   );
 }

@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/affiliate-url.test.ts src/lib/rate-limit.test.ts src/lib/associates-claims.test.ts src/lib/csv.test.ts src/lib/link-check.test.ts src/lib/amazon.test.ts",
+    "test": "tsx --test src/lib/affiliate-url.test.ts src/lib/rate-limit.test.ts src/lib/associates-claims.test.ts src/lib/csv.test.ts src/lib/link-check.test.ts src/lib/amazon.test.ts src/lib/utils.test.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate deploy",

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { assertSuperAdminPage } from "@/lib/admin-actions";
-import { updateBlogPost } from "@/lib/blog-actions";
+import { updateBlogPostForm } from "@/lib/form-actions";
 import { BlogForm } from "@/components/admin/BlogForm";
 import { prisma } from "@/lib/prisma";
 import { publicProductWhere } from "@/lib/product-query";
@@ -30,7 +30,7 @@ export default async function EditBlogPostPage({ params }: Props) {
 
   if (!post) notFound();
 
-  const action = updateBlogPost.bind(null, post.id);
+  const action = updateBlogPostForm.bind(null, post.id);
 
   return (
     <div>

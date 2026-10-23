@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { CategoryForm } from "@/components/admin/CategoryForm";
-import { assertSuperAdminPage, updateCategory } from "@/lib/admin-actions";
+import { assertSuperAdminPage } from "@/lib/admin-actions";
+import { updateCategoryForm } from "@/lib/form-actions";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -22,7 +23,7 @@ export default async function EditCategoryPage({ params }: Props) {
     select: { id: true, name: true },
   });
 
-  const action = updateCategory.bind(null, category.id);
+  const action = updateCategoryForm.bind(null, category.id);
 
   return (
     <div>

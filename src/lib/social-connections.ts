@@ -144,3 +144,57 @@ export async function verifyFacebookPage(opts: {
     };
   }
 }
+
+/** Check a Threads user token; returns the account's username. */
+export async function verifyThreadsAccount(opts: {
+  userId: string;
+  accessToken: string;
+}): Promise<{ ok: true; pageName: string } | { ok: false; error: string }> {
+  try {
+    const res = await fetch("https://graph.threads.net/v1.0/me?fields=id,username", {
+      headers: { Authorization: `Bearer ${opts.accessToken}` },
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      id?: string;
+      username?: string;
+      error?: { message?: string };
+    };
+    if (!res.ok || !data.id) {
+      return { ok: false, error: data.error?.message || `Threads rejected the token (HTTP ${res.status}).` };
+    }
+    if (opts.userId && data.id !== opts.userId) {
+      return { ok: false, error: `That token belongs to Threads user ${data.id}, not ${opts.userId}.` };
+    }
+    return { ok: true, pageName: data.username ? `@${data.username}` : data.id };
+  } catch {
+    return { ok: false, error: "Could not reach Threads." };
+  }
+}
+
+/** Check a Telegram bot token and that the bot can see the chat. */
+export async function verifyTelegramBot(opts: {
+  chatId: string;
+  token: string;
+}): Promise<{ ok: true; pageName: string } | { ok: false; error: string }> {
+  try {
+    const base = `https://api.telegram.org/bot${opts.token}`;
+    const me = (await (await fetch(`${base}/getMe`, { cache: "no-store" })).json()) as {
+      ok?: boolean;
+      result?: { username?: string };
+    };
+    if (!me.ok) return { ok: false, error: "Telegram rejected the bot token." };
+    const chat = (await (
+      await fetch(`${base}/getChat?chat_id=${encodeURIComponent(opts.chatId)}`, { cache: "no-store" })
+    ).json()) as { ok?: boolean; result?: { title?: string; username?: string }; description?: string };
+    if (!chat.ok) {
+      return {
+        ok: false,
+        error: `The bot can't see chat ${opts.chatId}: ${chat.description || "add the bot to the channel as an admin"}.`,
+      };
+    }
+    return { ok: true, pageName: chat.result?.title || chat.result?.username || opts.chatId };
+  } catch {
+    return { ok: false, error: "Could not reach Telegram." };
+  }
+}

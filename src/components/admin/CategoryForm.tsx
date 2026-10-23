@@ -1,3 +1,5 @@
+import { ActionForm } from "@/components/admin/ActionForm";
+import type { FormState } from "@/lib/form-state";
 type CategoryValues = {
   name: string;
   icon: string;
@@ -16,13 +18,13 @@ export function CategoryForm({
   category,
   parents = [],
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (state: FormState, formData: FormData) => Promise<FormState>;
   category?: CategoryValues;
   /** Main categories only — used as parent for subcategories */
   parents?: ParentOption[];
 }) {
   return (
-    <form
+    <ActionForm
       action={action}
       className="max-w-2xl space-y-5 rounded-xl bg-card border border-border p-6 shadow-sm"
     >
@@ -97,7 +99,7 @@ export function CategoryForm({
       >
         {category ? "Save changes" : "Create category"}
       </button>
-    </form>
+    </ActionForm>
   );
 }
 

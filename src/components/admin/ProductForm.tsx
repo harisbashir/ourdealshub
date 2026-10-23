@@ -1,5 +1,8 @@
 "use client";
 
+import { ActionForm } from "@/components/admin/ActionForm";
+import type { FormState } from "@/lib/form-state";
+
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import {
@@ -32,7 +35,7 @@ export function ProductForm({
   geminiConfigured = false,
 }: {
   categories: CategoryOption[];
-  action: (formData: FormData) => Promise<void>;
+  action: (state: FormState, formData: FormData) => Promise<FormState>;
   product?: ProductFormValues;
   amazonConfigured?: boolean;
   geminiConfigured?: boolean;
@@ -107,7 +110,7 @@ export function ProductForm({
   }
 
   return (
-    <form
+    <ActionForm
       action={action}
       className="space-y-5 rounded-xl bg-card border border-border p-6 max-w-3xl shadow-sm"
     >
@@ -352,7 +355,7 @@ export function ProductForm({
       >
         {product ? "Save changes" : "Save & publish"}
       </button>
-    </form>
+    </ActionForm>
   );
 }
 

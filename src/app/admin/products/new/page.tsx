@@ -1,7 +1,7 @@
 import { AddDealWorkspace } from "@/components/admin/AddDealWorkspace";
 import { requireProductAccess } from "@/lib/admin-auth";
 import { getAdminTrackingId } from "@/lib/admin-tracking";
-import { createProduct } from "@/lib/admin-actions";
+import { createProductForm } from "@/lib/form-actions";
 import { isAmazonConfigured } from "@/lib/amazon";
 import { isGeminiConfigured } from "@/lib/gemini";
 import { getSiteSettings } from "@/lib/settings";
@@ -42,7 +42,7 @@ export default async function NewProductPage() {
         hasTrackingIdUk={Boolean(trackingIdUk)}
         trackingIdLabelUk={trackingIdUk}
         isSuperAdminUser={isSuperAdmin(admin)}
-        createAction={createProduct}
+        createAction={createProductForm}
       />
     </div>
   );

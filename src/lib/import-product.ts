@@ -572,8 +572,9 @@ export async function publishImportedProduct(data: {
       };
     }
 
+    // Stable slug once live — shared links must keep working
     const slug =
-      title !== existing.title
+      title !== existing.title && !existing.isPublished && existing.clickCount === 0
         ? await uniqueProductSlug(title, existing.id)
         : existing.slug;
 

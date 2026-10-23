@@ -44,41 +44,18 @@ async function loadDeal(productId: string) {
   });
 }
 
-/** Prefer photo+caption (image URL) then fall back to link post. */
+/**
+ * Link post: Facebook builds the preview from the link itself. We don't
+ * upload Amazon's product photo — that would copy (cache) an Amazon image on
+ * Facebook's servers, which the Associates license doesn't allow (IP §2(h)).
+ */
 async function postFacebook(opts: {
   pageId: string;
   token: string;
   message: string;
   link: string;
-  imageUrl?: string | null;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    if (opts.imageUrl && /^https?:\/\//i.test(opts.imageUrl)) {
-      const photoUrl = new URL(
-        `https://graph.facebook.com/v21.0/${encodeURIComponent(opts.pageId)}/photos`
-      );
-      const caption = `${opts.message}\n\n${opts.link}`.slice(0, 2000);
-      const photoRes = await fetch(photoUrl.toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: opts.imageUrl,
-          caption,
-          access_token: opts.token,
-        }),
-        cache: "no-store",
-      });
-      const photoData = (await photoRes.json()) as {
-        id?: string;
-        post_id?: string;
-        error?: { message?: string };
-      };
-      if (photoRes.ok && !photoData.error && (photoData.id || photoData.post_id)) {
-        return { ok: true, id: photoData.post_id || photoData.id || "" };
-      }
-      // fall through to link post if photo rejected
-    }
-
     const url = new URL(
       `https://graph.facebook.com/v21.0/${encodeURIComponent(opts.pageId)}/feed`
     );
@@ -173,38 +150,13 @@ async function postThreads(opts: {
   }
 }
 
+/** Text message; Telegram shows the link preview (no Amazon image re-upload). */
 async function postTelegram(opts: {
   chatId: string;
   token: string;
   text: string;
-  imageUrl?: string | null;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    if (opts.imageUrl && /^https?:\/\//i.test(opts.imageUrl)) {
-      const photoRes = await fetch(
-        `https://api.telegram.org/bot${opts.token}/sendPhoto`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: opts.chatId,
-            photo: opts.imageUrl,
-            caption: opts.text.slice(0, 1024),
-          }),
-          cache: "no-store",
-        }
-      );
-      const photoData = (await photoRes.json()) as {
-        ok?: boolean;
-        result?: { message_id?: number };
-        description?: string;
-      };
-      if (photoRes.ok && photoData.ok) {
-        return { ok: true, id: String(photoData.result?.message_id || "") };
-      }
-      // fall through to text
-    }
-
     const res = await fetch(
       `https://api.telegram.org/bot${opts.token}/sendMessage`,
       {
@@ -342,7 +294,6 @@ export async function autoPostPublishedDeal(
         message: post.caption,
         // Graph `link` must be the Special Link — do not cloak behind /go
         link: post.linkAttachment || amazonSpecialLink,
-        imageUrl: deal.imageUrl,
       });
     } else if (platform === "threads") {
       outcome = await postThreads({
@@ -355,7 +306,6 @@ export async function autoPostPublishedDeal(
         chatId: conn.pageId,
         token: openSecret(conn.accessToken),
         text: post.caption,
-        imageUrl: deal.imageUrl,
       });
     } else {
       continue;

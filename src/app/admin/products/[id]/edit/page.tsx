@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { ProductForm } from "@/components/admin/ProductForm";
-import { updateProduct } from "@/lib/admin-actions";
+import { updateProductForm } from "@/lib/form-actions";
 import { requireProductAccess } from "@/lib/admin-auth";
 import { isAmazonConfigured } from "@/lib/amazon";
 import { isGeminiConfigured } from "@/lib/gemini";
@@ -23,7 +23,7 @@ export default async function EditProductPage({ params }: Props) {
   if (!product || product.deletedAt) notFound();
   if (!canManageOwnedProduct(admin, product)) notFound();
 
-  const action = updateProduct.bind(null, product.id);
+  const action = updateProductForm.bind(null, product.id);
 
   return (
     <div>

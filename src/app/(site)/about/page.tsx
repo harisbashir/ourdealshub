@@ -10,13 +10,13 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-bold text-foreground mb-2">About OurDealsHub</h1>
+    <div className="site-container max-w-2xl pb-4 pt-4">
+      <h1 className="text-[28px] font-bold tracking-tight text-foreground sm:text-[34px]">About OurDealsHub</h1>
       <p className="text-sm text-muted mb-8">
         Curated Amazon deals — clear picks, honest disclosure.
       </p>
 
-      <div className="space-y-5 text-sm sm:text-base text-muted leading-relaxed">
+      <div className="prose-page mt-4 space-y-4 text-[17px]">
         <p>
           OurDealsHub helps you discover curated Amazon product picks. We
           highlight items our editors think are worth a look — always with

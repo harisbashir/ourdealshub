@@ -254,8 +254,10 @@ export async function updateProduct(id: string, formData: FormData) {
     marketplace,
   });
 
+  // Keep the slug once a deal has been seen: shared /deal and /go links
+  // (social posts, Telegram) must keep working after a title edit.
   const slug =
-    data.title !== product.title
+    data.title !== product.title && !product.isPublished && product.clickCount === 0
       ? await uniqueProductSlug(data.title, id)
       : product.slug;
 

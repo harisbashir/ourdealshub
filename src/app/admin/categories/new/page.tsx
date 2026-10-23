@@ -1,5 +1,6 @@
 import { CategoryForm } from "@/components/admin/CategoryForm";
-import { assertSuperAdminPage, createCategory } from "@/lib/admin-actions";
+import { assertSuperAdminPage } from "@/lib/admin-actions";
+import { createCategoryForm } from "@/lib/form-actions";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "New Category — Admin" };
@@ -15,7 +16,7 @@ export default async function NewCategoryPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-6">Add category</h1>
-      <CategoryForm action={createCategory} parents={parents} />
+      <CategoryForm action={createCategoryForm} parents={parents} />
     </div>
   );
 }

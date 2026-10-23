@@ -1,31 +1,21 @@
+/** Skeleton shown while a public page loads (HIG › Loading: show something right away). */
 export default function SiteLoading() {
   return (
-    <div className="site-container pt-8 pb-16 animate-pulse">
-      <div className="h-8 w-48 rounded-lg bg-card-muted" />
-      <div className="mt-2 h-4 w-72 max-w-full rounded bg-card-muted" />
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="aspect-[4/3] rounded-2xl border border-border bg-card-muted"
-          />
-        ))}
-      </div>
-      <div className="mt-10 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3">
+    <div className="site-container pt-7" aria-busy="true" aria-label="Loading">
+      <div className="h-7 w-40 animate-pulse rounded-lg bg-card ring-1 ring-border-subtle" />
+      <div className="mt-2 h-4 w-64 max-w-full animate-pulse rounded bg-card ring-1 ring-border-subtle" />
+      <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-border overflow-hidden"
-          >
-            <div className="aspect-square bg-card-muted" />
-            <div className="p-3 space-y-2">
-              <div className="h-3 rounded bg-card-muted" />
-              <div className="h-3 w-2/3 rounded bg-card-muted" />
-              <div className="h-8 rounded-lg bg-card-muted" />
+          <li key={i} className="overflow-hidden rounded-2xl bg-card ring-1 ring-border-subtle">
+            <div className="aspect-square animate-pulse bg-card-muted" />
+            <div className="space-y-2 p-3">
+              <div className="h-3.5 animate-pulse rounded bg-card-muted" />
+              <div className="h-3.5 w-2/3 animate-pulse rounded bg-card-muted" />
+              <div className="h-11 animate-pulse rounded-full bg-card-muted" />
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

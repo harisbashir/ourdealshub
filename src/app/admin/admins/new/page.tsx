@@ -1,4 +1,6 @@
-import { createAdminUser, assertSuperAdminPage } from "@/lib/admin-actions";
+import { assertSuperAdminPage } from "@/lib/admin-actions";
+import { createAdminUserForm } from "@/lib/form-actions";
+import { ActionForm } from "@/components/admin/ActionForm";
 
 export const metadata = { title: "Add Admin — Super Admin" };
 
@@ -16,8 +18,8 @@ export default async function NewAdminPage() {
         password. Grant product access so they can add deals.
       </p>
 
-      <form
-        action={createAdminUser}
+      <ActionForm
+        action={createAdminUserForm}
         className="space-y-5 rounded-xl bg-card border border-brand/45 p-6 shadow-sm"
       >
         <div>
@@ -105,7 +107,7 @@ export default async function NewAdminPage() {
         >
           Create admin
         </button>
-      </form>
+      </ActionForm>
     </div>
   );
 }

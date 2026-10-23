@@ -6,6 +6,8 @@ import { requireSuperAdmin } from "@/lib/admin-auth";
 import {
   defaultTokenExpiry,
   verifyFacebookPage,
+  verifyTelegramBot,
+  verifyThreadsAccount,
   type SocialPlatform,
 } from "@/lib/social-connections";
 import { sealSecret } from "@/lib/secret-box";
@@ -112,15 +114,20 @@ export async function retryFailedSocialPosts(): Promise<{
     }
   }
 
-  // Also nudge a few recent publishes that have zero successful posts
+  // Also post recent published deals that have never been shared anywhere
+  // (never re-share deals that already went out successfully)
   if (retried === 0) {
-    const recent = await prisma.product.findMany({
-      where: { deletedAt: null, isPublished: true },
+    const neverShared = await prisma.product.findMany({
+      where: {
+        deletedAt: null,
+        isPublished: true,
+        socialPosts: { none: { status: "ok" } },
+      },
       orderBy: { updatedAt: "desc" },
       take: 5,
       select: { id: true },
     });
-    for (const p of recent) {
+    for (const p of neverShared) {
       try {
         await autoPostPublishedDeal(p.id);
         retried++;
@@ -147,8 +154,8 @@ export async function connectSocialStub(
   platform: SocialPlatform
 ): Promise<ConnectResult> {
   await requireSuperAdmin();
-  // Only platforms with live publish support may connect via stub.
-  if (platform !== "telegram") {
+  // Only platforms the publisher can actually post to (social-publish.ts)
+  if (platform !== "telegram" && platform !== "threads") {
     return {
       ok: false,
       error: `${platform} auto-post is not available yet.`,
@@ -163,6 +170,13 @@ export async function connectSocialStub(
     };
   }
 
+  // Verify before saving so a typo shows up now, not on the next publish
+  const verified =
+    platform === "threads"
+      ? await verifyThreadsAccount({ userId: pageId, accessToken })
+      : await verifyTelegramBot({ chatId: pageId, token: accessToken });
+  if (!verified.ok) return verified;
+
   const tokenExpiresAt = expiryForPlatform(platform);
   const sealed = sealSecret(accessToken);
 
@@ -171,7 +185,7 @@ export async function connectSocialStub(
     create: {
       platform,
       pageId,
-      pageName: pageId,
+      pageName: verified.pageName,
       accessToken: sealed,
       isActive: true,
       lastError: null,
@@ -180,7 +194,7 @@ export async function connectSocialStub(
     },
     update: {
       pageId,
-      pageName: pageId,
+      pageName: verified.pageName,
       accessToken: sealed,
       isActive: true,
       lastError: null,
@@ -190,5 +204,5 @@ export async function connectSocialStub(
   });
 
   revalidatePath("/admin/automation");
-  return { ok: true, pageName: pageId };
+  return { ok: true, pageName: verified.pageName };
 }

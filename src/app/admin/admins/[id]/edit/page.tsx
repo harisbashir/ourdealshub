@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
   assertSuperAdminPage,
-  updateAdminUser,
 } from "@/lib/admin-actions";
+import { updateAdminUserForm } from "@/lib/form-actions";
+import { ActionForm } from "@/components/admin/ActionForm";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -21,7 +22,7 @@ export default async function EditAdminPage({ params }: Props) {
   // Only allow editing another Super Admin if it's yourself (name/password)
   if (admin.role === "SUPER_ADMIN" && admin.id !== current.id) notFound();
 
-  const action = updateAdminUser.bind(null, admin.id);
+  const action = updateAdminUserForm.bind(null, admin.id);
   const isSelf = admin.id === current.id;
 
   return (
@@ -29,7 +30,7 @@ export default async function EditAdminPage({ params }: Props) {
       <h1 className="text-2xl font-bold text-foreground mb-6">
         {isSelf ? "Edit your profile" : "Edit admin"}
       </h1>
-      <form
+      <ActionForm
         action={action}
         className="space-y-5 rounded-xl bg-card border border-brand/45 p-6 shadow-sm"
       >
@@ -131,7 +132,7 @@ export default async function EditAdminPage({ params }: Props) {
         >
           Save changes
         </button>
-      </form>
+      </ActionForm>
     </div>
   );
 }

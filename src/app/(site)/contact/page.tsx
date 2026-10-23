@@ -12,8 +12,8 @@ export default function ContactPage() {
   const email = getContactEmail();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-bold text-foreground mb-2">Contact</h1>
+    <div className="site-container max-w-2xl pb-4 pt-4">
+      <h1 className="text-[28px] font-bold tracking-tight text-foreground sm:text-[34px]">Contact</h1>
       <p className="text-sm text-muted mb-8">
         Privacy questions, partnership notes, or site feedback.
       </p>

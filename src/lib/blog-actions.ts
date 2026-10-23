@@ -32,12 +32,19 @@ function normalizeCoverImageUrl(raw: string): string | null {
   }
 }
 
-function parseProductIds(formData: FormData): string[] {
+async function parseProductIds(formData: FormData): Promise<string[]> {
   const raw = formData.getAll("productIds");
-  const ids = raw
-    .map((v) => String(v || "").trim())
-    .filter(Boolean);
-  return [...new Set(ids)].slice(0, 24);
+  const ids = [
+    ...new Set(raw.map((v) => String(v || "").trim()).filter(Boolean)),
+  ].slice(0, 24);
+  if (!ids.length) return [];
+  // Drop unknown / archived ids instead of failing on the foreign key
+  const found = await prisma.product.findMany({
+    where: { id: { in: ids }, deletedAt: null },
+    select: { id: true },
+  });
+  const ok = new Set(found.map((p) => p.id));
+  return ids.filter((id) => ok.has(id));
 }
 
 async function uniqueBlogSlug(base: string, excludeId?: string) {
@@ -64,7 +71,7 @@ export async function createBlogPost(formData: FormData) {
   const coverRaw = String(formData.get("coverImageUrl") || "");
   const coverImageUrl = normalizeCoverImageUrl(coverRaw);
   const isPublished = formData.get("isPublished") === "on";
-  const productIds = parseProductIds(formData);
+  const productIds = await parseProductIds(formData);
 
   if (!title) throw new Error("Title required");
   if (!content) throw new Error("Content required");
@@ -111,14 +118,17 @@ export async function updateBlogPost(id: string, formData: FormData) {
   const coverRaw = String(formData.get("coverImageUrl") || "");
   const coverImageUrl = normalizeCoverImageUrl(coverRaw);
   const isPublished = formData.get("isPublished") === "on";
-  const productIds = parseProductIds(formData);
+  const productIds = await parseProductIds(formData);
 
   if (!title) throw new Error("Title required");
   if (!content) throw new Error("Content required");
 
   assertAssociatesSafeCopy({ title, excerpt, content }, "Blog post");
 
-  const slug = await uniqueBlogSlug(title, id);
+  // Keep the URL once a post has been published (shared links, SEO)
+  const slug = existing.publishedAt
+    ? existing.slug
+    : await uniqueBlogSlug(title, id);
   const publishedAt =
     isPublished && !existing.publishedAt
       ? new Date()

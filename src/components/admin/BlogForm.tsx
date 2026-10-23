@@ -1,5 +1,8 @@
 "use client";
 
+import { ActionForm } from "@/components/admin/ActionForm";
+import type { FormState } from "@/lib/form-state";
+
 type ProductOption = { id: string; title: string };
 
 export type BlogFormValues = {
@@ -16,14 +19,14 @@ export function BlogForm({
   post,
   products,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (state: FormState, formData: FormData) => Promise<FormState>;
   post?: BlogFormValues;
   products: ProductOption[];
 }) {
   const selected = new Set(post?.productIds || []);
 
   return (
-    <form
+    <ActionForm
       action={action}
       className="max-w-3xl space-y-5 rounded-xl bg-card border border-border p-5 sm:p-6 shadow-sm"
     >
@@ -129,6 +132,6 @@ export function BlogForm({
       >
         {post ? "Save post" : "Create post"}
       </button>
-    </form>
+    </ActionForm>
   );
 }
