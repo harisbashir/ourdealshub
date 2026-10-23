@@ -93,7 +93,7 @@ export function CategoryForm({
       </label>
       <button
         type="submit"
-        className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark"
+        className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark"
       >
         {category ? "Save changes" : "Create category"}
       </button>

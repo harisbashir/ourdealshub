@@ -3,17 +3,20 @@
 import { Children, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+/**
+ * Horizontal carousel. Touch: native swipe with scroll-snap. Mouse/trackpad:
+ * arrow buttons appear (only when there is more to scroll in that direction).
+ */
 export function ScrollRow({
   children,
-  className = "",
+  label,
   itemClassName = "",
 }: {
   children: React.ReactNode;
-  className?: string;
+  label: string;
   itemClassName?: string;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
-  const track = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
   const items = Children.toArray(children);
@@ -21,106 +24,57 @@ export function ScrollRow({
   const update = useCallback(() => {
     const el = scroller.current;
     if (!el) return;
-    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
-    setCanLeft(el.scrollLeft > 1);
-    setCanRight(maxScroll > 2 && el.scrollLeft < maxScroll - 1);
+    const max = el.scrollWidth - el.clientWidth;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(max > 4 && el.scrollLeft < max - 4);
   }, []);
 
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-
     update();
     el.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    window.addEventListener("orientationchange", update);
-
-    const ro = new ResizeObserver(() => requestAnimationFrame(update));
+    const ro = new ResizeObserver(update);
     ro.observe(el);
-    if (track.current) ro.observe(track.current);
-    for (const child of Array.from(track.current?.children || [])) {
-      ro.observe(child);
-    }
-
-    const onLoad = () => update();
-    window.addEventListener("load", onLoad);
-    el.querySelectorAll("img").forEach((img) => {
-      if (!img.complete) img.addEventListener("load", onLoad);
-    });
-
-    const t1 = window.setTimeout(update, 50);
-    const t2 = window.setTimeout(update, 300);
-    const t3 = window.setTimeout(update, 1000);
-
     return () => {
       el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("orientationchange", update);
-      window.removeEventListener("load", onLoad);
       ro.disconnect();
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
     };
   }, [items.length, update]);
 
-  function scroll(dir: number) {
+  function scroll(dir: 1 | -1) {
     const el = scroller.current;
     if (!el) return;
-    const step = Math.max(160, Math.round(el.clientWidth * 0.8));
-    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
-    const next = Math.min(maxScroll, Math.max(0, el.scrollLeft + dir * step));
-    if (typeof el.scrollTo === "function") {
-      el.scrollTo({ left: next, behavior: "smooth" });
-    } else {
-      el.scrollLeft = next;
-    }
-    requestAnimationFrame(update);
-    window.setTimeout(update, 200);
-    window.setTimeout(update, 500);
+    el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.85), behavior: "smooth" });
   }
 
-  return (
-    <div className={`relative w-full min-w-0 ${className}`}>
-      <button
-        type="button"
-        aria-label="Scroll left"
-        onClick={() => scroll(-1)}
-        disabled={!canLeft}
-        className="absolute left-0 top-1/2 z-20 -translate-y-1/2 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-border bg-card text-foreground shadow-lg shadow-black/10 transition-all hover:border-brand hover:text-brand active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
+  const arrow =
+    "pressable absolute top-[38%] z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md hover:bg-card-muted [@media(pointer:fine)]:flex";
 
+  return (
+    <div className="relative">
+      {canLeft && (
+        <button type="button" aria-label="Scroll back" onClick={() => scroll(-1)} className={`${arrow} -left-3`}>
+          <ChevronLeft className="h-5 w-5" aria-hidden />
+        </button>
+      )}
       <div
         ref={scroller}
-        className="w-full min-w-0 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory scrollbar-hide py-1.5 px-10 sm:px-12 touch-pan-x overscroll-x-contain"
-        style={{ WebkitOverflowScrolling: "touch" }}
+        role="list"
+        aria-label={label}
+        className="scrollbar-hide -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 pt-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:-mx-2 lg:px-2"
       >
-        <div
-          ref={track}
-          className="flex w-max items-stretch gap-2 sm:gap-3"
-        >
-          {items.map((child, i) => (
-            <div
-              key={i}
-              className={`snap-start shrink-0 grow-0 flex flex-col self-stretch ${itemClassName}`}
-            >
-              {child}
-            </div>
-          ))}
-        </div>
+        {items.map((child, i) => (
+          <div key={i} role="listitem" className={`flex shrink-0 snap-start ${itemClassName}`}>
+            {child}
+          </div>
+        ))}
       </div>
-
-      <button
-        type="button"
-        aria-label="Scroll right"
-        onClick={() => scroll(1)}
-        disabled={!canRight}
-        className="absolute right-0 top-1/2 z-20 -translate-y-1/2 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-border bg-card text-foreground shadow-lg shadow-black/10 transition-all hover:border-brand hover:text-brand active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
+      {canRight && (
+        <button type="button" aria-label="Scroll forward" onClick={() => scroll(1)} className={`${arrow} -right-3`}>
+          <ChevronRight className="h-5 w-5" aria-hidden />
+        </button>
+      )}
     </div>
   );
 }

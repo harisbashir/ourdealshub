@@ -149,7 +149,7 @@ export function QuickAddProduct({
               </button>
             ))}
           </div>
-          <p className="mt-1.5 text-[11px] text-muted">
+          <p className="mt-1.5 text-xs text-muted">
             UK deals need a UK Tracking ID on your admin profile. Pasting an
             amazon.co.uk link auto-selects UK.
           </p>
@@ -174,7 +174,7 @@ export function QuickAddProduct({
         </div>
 
         {!activeHasTracking && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+          <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2.5 text-sm text-warning dark:text-warning">
             {isSuperAdminUser ? (
               <>
                 Your {marketplace} Amazon Tracking ID is not set. Add it under{" "}
@@ -213,7 +213,7 @@ export function QuickAddProduct({
           <button
             type="submit"
             disabled={pending || !url.trim() || !activeHasTracking}
-            className="w-full sm:w-auto rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-60"
+            className="w-full sm:w-auto rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark disabled:opacity-60"
           >
             {pending ? "Working…" : "Add Product"}
           </button>
@@ -224,7 +224,7 @@ export function QuickAddProduct({
         )}
 
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600">
+          <div className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
             <p className="font-medium">{error}</p>
             {failures.length > 0 && (
               <ul className="mt-1 list-disc pl-4 text-xs">
@@ -247,7 +247,7 @@ export function QuickAddProduct({
           </div>
         )}
         {message && !error && (
-          <p className="text-sm text-emerald-600 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2">
+          <p className="text-sm text-success bg-success-soft border border-success/30 rounded-lg px-3 py-2">
             {message}
           </p>
         )}
@@ -292,9 +292,9 @@ function ImportStepsList({
                   : "○";
         const color =
           s.status === "done"
-            ? "text-emerald-600"
+            ? "text-success"
             : s.status === "failed"
-              ? "text-red-500"
+              ? "text-danger"
               : s.status === "skipped"
                 ? "text-muted-fg"
                 : "text-muted";
@@ -319,9 +319,9 @@ function StatusPill({
   neutral?: boolean;
 }) {
   const cls = neutral
-    ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+    ? "bg-warning-soft text-warning border-warning/30 dark:text-warning"
     : ok
-      ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+      ? "bg-success-soft text-success border-success/30 dark:text-success"
       : "bg-card-muted text-muted border-border";
   return (
     <span className={`rounded-full border px-2.5 py-0.5 font-medium ${cls}`}>
@@ -503,7 +503,7 @@ function ReviewForm({
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600">
+        <div className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
           <p className="font-medium">{error}</p>
           {failures.length > 0 && (
             <ul className="mt-1 list-disc pl-4 text-xs">
@@ -519,7 +519,7 @@ function ReviewForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-60"
+          className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark disabled:opacity-60"
         >
           {pending
             ? "Saving…"

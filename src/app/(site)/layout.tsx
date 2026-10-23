@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import { Footer } from "@/components/Footer";
 import { SiteChrome } from "@/components/SiteChrome";
-import { AffiliateDisclosure } from "@/components/AffiliateDisclosure";
+import { CategoryBar } from "@/components/CategoryBar";
+import { DisclosureNote } from "@/components/AffiliateDisclosure";
 import { prisma } from "@/lib/prisma";
+import { getAccentTheme } from "@/lib/settings";
 
 /**
  * Render per request. Every public page reads Postgres (nav categories at minimum),
@@ -14,26 +17,28 @@ export default async function SiteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Top nav: Trending + main categories only
-  const categories = await prisma.category.findMany({
-    where: {
-      OR: [{ slug: "trending" }, { parentId: null, NOT: { slug: "trending" } }],
-    },
-    orderBy: { sortOrder: "asc" },
-    select: { name: true, slug: true, icon: true, parentId: true },
-  });
-
-  const nav = [
-    ...categories.filter((c) => c.slug === "trending"),
-    ...categories.filter((c) => c.slug !== "trending"),
-  ].map(({ name, slug, icon }) => ({ name, slug, icon }));
+  const [accent, categories] = await Promise.all([
+    getAccentTheme(),
+    prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { name: true, slug: true, icon: true },
+    }),
+  ]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <SiteChrome categories={nav} />
-      <main className="flex-1">{children}</main>
-      <AffiliateDisclosure compact />
-      <Footer />
+    <div data-accent={accent} className="flex min-h-dvh flex-col">
+      <SiteChrome />
+      <main id="main" className="flex-1">
+        <Suspense fallback={null}>
+          <CategoryBar categories={categories} />
+        </Suspense>
+        <DisclosureNote />
+        {children}
+      </main>
+      <div className="with-tab-bar">
+        <Footer />
+      </div>
     </div>
   );
 }

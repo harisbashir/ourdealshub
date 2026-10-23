@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductGrid } from "@/components/ProductGrid";
 import { Pagination } from "@/components/Pagination";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import {
   publicProductWhere,
@@ -25,8 +26,8 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   if (slug === "trending") {
     return {
-      title: "Trending Deals",
-      description: "Most clicked Amazon deals on OurDealsHub right now.",
+      title: "Trending",
+      description: "The Amazon picks people are opening most on OurDealsHub right now.",
       alternates: { canonical: "/category/trending" },
     };
   }
@@ -39,10 +40,10 @@ export async function generateMetadata({ params }: Props) {
     ? `${category.parent.name} › ${category.name}`
     : category.name;
   return {
-    title: `${title} Deals`,
+    title,
     description:
       category.description ||
-      `Browse curated Amazon ${title} deals on OurDealsHub.`,
+      `Curated Amazon picks in ${title} on OurDealsHub.`,
     alternates: { canonical: `/category/${category.slug}` },
   };
 }
@@ -66,12 +67,10 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <div>
         <ProductGrid
           title="Trending"
-          subtitle={
-            market
-              ? `Most clicked · Amazon ${market} · ${total} total`
-              : `Most clicked deals right now · ${total} total`
-          }
+          subtitle={`What people are opening most${market ? ` · Amazon ${market}` : ""} · ${total} ${total === 1 ? "pick" : "picks"}`}
           products={products}
+          headingLevel={1}
+          priorityCount={4}
         />
         <Pagination
           basePath={"/category/trending"}
@@ -116,53 +115,58 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     }),
   ]);
 
-  const title = category.parent
-    ? `${category.parent.name} › ${category.name}`
-    : category.name;
   const pages = totalPages(total);
   const extraQuery = market ? { market } : undefined;
 
   return (
     <div>
-      {!category.parentId && category.children.length > 0 && (
-        <div className="site-container pt-6">
-          <p className="text-xs font-medium text-muted mb-2">Subcategories</p>
-          <div className="flex flex-wrap gap-2">
-            {category.children.map((child) => (
-              <Link
-                key={child.id}
-                href={`/category/${child.slug}${market ? `?market=${market}` : ""}`}
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:border-brand hover:text-brand"
-              >
-                {child.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
       {category.parent && (
-        <div className="site-container pt-6 text-sm text-muted">
+        <div className="site-container pt-4">
           <Link
             href={`/category/${category.parent.slug}${market ? `?market=${market}` : ""}`}
-            className="hover:text-brand"
+            className="-ml-2 inline-flex h-10 items-center gap-1 rounded-full px-2 text-[15px] font-medium text-brand hover:bg-brand-soft"
           >
-            ← {category.parent.name}
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            {category.parent.name}
           </Link>
         </div>
       )}
       <ProductGrid
-        title={title}
+        title={category.name}
         subtitle={
           (category.description ||
-            (category.parentId
-              ? `Deals in ${category.name}`
-              : `All deals in ${category.name}${
-                  category.children.length
-                    ? " and its subcategories"
-                    : ""
-                }`)) + (market ? ` · Amazon ${market}` : "")
+            (category.children.length
+              ? `Everything in ${category.name}, including subcategories`
+              : `Picks in ${category.name}`)) +
+          (market ? ` · Amazon ${market}` : "") +
+          ` · ${total} ${total === 1 ? "pick" : "picks"}`
         }
         products={products}
+        headingLevel={1}
+        priorityCount={4}
+        headerExtra={
+          !category.parentId && category.children.length > 0 ? (
+            <nav aria-label="Subcategories">
+              <ul className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+                {category.children.map((child) => (
+                  <li key={child.id} className="shrink-0">
+                    <Link
+                      href={`/category/${child.slug}${market ? `?market=${market}` : ""}`}
+                      className="pressable inline-flex h-10 items-center rounded-full bg-card px-4 text-[15px] font-medium whitespace-nowrap text-foreground ring-1 ring-border hover:bg-card-muted"
+                    >
+                      {child.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null
+        }
+        emptyText={
+          market
+            ? `No ${market} picks in ${category.name} yet. Try all stores.`
+            : `No picks in ${category.name} yet. Check back soon.`
+        }
       />
       <Pagination
         basePath={`/category/${slug}`}

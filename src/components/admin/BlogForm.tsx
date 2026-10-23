@@ -25,7 +25,7 @@ export function BlogForm({
   return (
     <form
       action={action}
-      className="admin-shell-static max-w-3xl space-y-5 rounded-xl bg-card border border-border p-5 sm:p-6 shadow-sm"
+      className="max-w-3xl space-y-5 rounded-xl bg-card border border-border p-5 sm:p-6 shadow-sm"
     >
       <div>
         <label className="block text-sm font-medium text-foreground mb-1">
@@ -89,7 +89,7 @@ export function BlogForm({
           Selected deals show as cards on the public post.
         </p>
         {products.length === 0 ? (
-          <p className="text-xs text-amber-600 dark:text-amber-400">
+          <p className="text-xs text-warning dark:text-warning">
             No published products yet — add deals first, then attach them here.
           </p>
         ) : (
@@ -125,7 +125,7 @@ export function BlogForm({
 
       <button
         type="submit"
-        className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark"
+        className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark"
       >
         {post ? "Save post" : "Create post"}
       </button>

@@ -51,13 +51,13 @@ export default async function AdminCategoriesPage() {
         </div>
         <Link
           href="/admin/categories/new"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark shadow-sm shadow-brand/20"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-dark shadow-sm shadow-brand/20"
         >
           <Plus className="h-4 w-4" /> Add category
         </Link>
       </div>
 
-      <div className="admin-shell-static rounded-xl bg-card border border-border shadow-sm overflow-hidden">
+      <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
         <AdminHScroll>
           <div className="min-w-[640px]">
             <div className="grid grid-cols-[minmax(160px,1.4fr)_minmax(100px,1fr)_auto_auto_auto_auto] gap-x-2 items-center bg-card-muted text-left text-muted text-sm px-3 py-2.5 border-b border-border">
@@ -100,13 +100,13 @@ function CategorySubCard({
   childCount: number;
 }) {
   return (
-    <article className="admin-deal-card grid grid-cols-[minmax(160px,1.4fr)_minmax(100px,1fr)_auto_auto_auto_auto] gap-x-2 items-center rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
+    <article className="grid grid-cols-[minmax(160px,1.4fr)_minmax(100px,1fr)_auto_auto_auto_auto] gap-x-2 items-center rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
       <div className="px-1 min-w-0">
         <span className={`font-medium text-foreground ${depth > 0 ? "pl-3" : ""}`}>
           {depth > 0 ? "↳ " : ""}
           {c.name}
         </span>
-        <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-fg">
+        <span className="ml-2 text-xs uppercase tracking-wide text-muted-fg">
           {depth === 0 ? "Main" : "Sub"}
         </span>
       </div>

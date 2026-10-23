@@ -1,12 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#f97316"/>
-  <text
-    x="16"
-    y="21.5"
-    text-anchor="middle"
-    fill="#fff"
-    font-size="12"
-    font-weight="700"
-    font-family="system-ui, -apple-system, Segoe UI, sans-serif"
-  >AD</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#C2410C"/>
+  <path d="M14 30.5V17a3 3 0 0 1 3-3h13.5a3 3 0 0 1 2.1.9l17.2 17.2a3 3 0 0 1 0 4.2L36.3 49.8a3 3 0 0 1-4.2 0L14.9 32.6a3 3 0 0 1-.9-2.1Z" fill="#fff"/>
+  <circle cx="23" cy="23" r="3.6" fill="#C2410C"/>
 </svg>

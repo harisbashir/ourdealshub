@@ -53,70 +53,75 @@ export function AdminProductFilter({
     push(next);
   }
 
+  const field =
+    "min-h-11 rounded-xl border border-field-border bg-input-bg px-3 text-[15px] text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft";
+
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <form onSubmit={onSearch} className="flex items-center gap-1.5">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <form onSubmit={onSearch} role="search" className="flex min-w-0 flex-1 gap-2 sm:max-w-sm">
+        <label htmlFor="product-search" className="sr-only">Search products</label>
         <input
+          id="product-search"
           type="search"
+          enterKeyHint="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search title, ASIN…"
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand w-44 placeholder:text-muted-fg"
+          placeholder="Search title or ASIN"
+          className={`${field} min-w-0 flex-1 placeholder:text-muted-fg`}
         />
         <button
           type="submit"
-          className="admin-edge-btn rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+          className="pressable min-h-11 rounded-full border border-border bg-card px-4 text-[15px] font-semibold text-foreground hover:bg-card-muted"
         >
           Search
         </button>
       </form>
 
-      <label htmlFor="market-filter" className="text-sm text-muted shrink-0">
-        Store
-      </label>
-      <select
-        id="market-filter"
-        value={market === "US" || market === "UK" ? market : ""}
-        onChange={(e) => onMarketChange(e.target.value)}
-        className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand min-w-[100px]"
-      >
-        <option value="">All</option>
-        <option value="US">US</option>
-        <option value="UK">UK</option>
-      </select>
+      <div className="flex flex-wrap gap-2">
+        <label htmlFor="market-filter" className="sr-only">Store</label>
+        <select
+          id="market-filter"
+          value={market === "US" || market === "UK" ? market : ""}
+          onChange={(e) => onMarketChange(e.target.value)}
+          className={field}
+        >
+          <option value="">All stores</option>
+          <option value="US">US store</option>
+          <option value="UK">UK store</option>
+        </select>
 
-      {admins.length > 0 && (
-        <>
-          <label htmlFor="admin-filter" className="text-sm text-muted shrink-0">
-            Added by
-          </label>
-          <select
-            id="admin-filter"
-            value={selected}
-            onChange={(e) => onAdminChange(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand min-w-[140px]"
-          >
-            <option value="">All admins</option>
-            {admins.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name || a.id}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
+        {admins.length > 0 && (
+          <>
+            <label htmlFor="admin-filter" className="sr-only">Added by</label>
+            <select
+              id="admin-filter"
+              value={selected}
+              onChange={(e) => onAdminChange(e.target.value)}
+              className={field}
+            >
+              <option value="">Everyone</option>
+              {admins.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name || a.id}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
 
-      <button
-        type="button"
-        onClick={onArchivedToggle}
-        className={`admin-edge-btn rounded-lg border px-3 py-2 text-sm transition-colors ${
-          archived
-            ? "border-brand text-brand font-semibold"
-            : "border-border bg-card text-foreground"
-        }`}
-      >
-        {archived ? "Viewing archived" : "Archived"}
-      </button>
+        <button
+          type="button"
+          onClick={onArchivedToggle}
+          aria-pressed={archived}
+          className={`pressable min-h-11 rounded-full px-4 text-[15px] font-semibold ring-1 ${
+            archived
+              ? "bg-foreground text-background ring-foreground"
+              : "bg-card text-foreground ring-border hover:bg-card-muted"
+          }`}
+        >
+          Archived
+        </button>
+      </div>
     </div>
   );
 }

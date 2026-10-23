@@ -1,3 +1,4 @@
+import { AFFILIATE_LINK_REL } from "@/lib/affiliate-disclosure";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -180,7 +181,7 @@ export default async function BlogPostPage({ params }: Props) {
       <div className="grid gap-8 lg:grid-cols-[1fr_300px] lg:items-start">
         <article className="min-w-0">
           <header className="mb-6">
-            <span className="inline-flex rounded-md border border-brand/30 bg-brand-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand">
+            <span className="inline-flex rounded-md border border-brand/30 bg-brand-soft px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-brand">
               {visibleDeals.length > 0 ? "Deal roundup" : "Guide"}
             </span>
             <h1 className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-bold text-foreground leading-tight tracking-tight">
@@ -213,7 +214,7 @@ export default async function BlogPostPage({ params }: Props) {
 
           {toc.length >= 2 && (
             <div className="mb-8 rounded-xl border border-border bg-card-muted/60 px-4 py-3 sm:hidden">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted mb-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">
                 In this post
               </p>
               <ol className="space-y-1.5 text-sm">
@@ -250,9 +251,9 @@ export default async function BlogPostPage({ params }: Props) {
             <div className="mt-8 space-y-3">
               <a
                 href={`/go/${primaryDeal.slug}?src=blog`}
-                rel="nofollow sponsored noopener noreferrer"
+                rel={AFFILIATE_LINK_REL}
                 target="_blank"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3.5 text-sm sm:text-base font-bold text-white shadow-md shadow-brand/25 hover:bg-brand-dark transition-colors"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3.5 text-sm sm:text-base font-bold text-on-brand shadow-md shadow-brand/25 hover:bg-brand-dark transition-colors"
               >
                 View this deal on Amazon
                 <ExternalLink className="h-4 w-4" />
@@ -300,9 +301,9 @@ export default async function BlogPostPage({ params }: Props) {
                         <div className="mt-auto pt-2 flex flex-wrap gap-2">
                           <a
                             href={`/go/${d.slug}?src=blog`}
-                            rel="nofollow sponsored noopener noreferrer"
+                            rel={AFFILIATE_LINK_REL}
                             target="_blank"
-                            className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-dark"
+                            className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-on-brand hover:bg-brand-dark"
                           >
                             Get deal
                             <ExternalLink className="h-3 w-3" />
@@ -324,7 +325,7 @@ export default async function BlogPostPage({ params }: Props) {
 
           {relatedCategories.length > 0 && (
             <section className="mt-8 rounded-xl border border-border bg-card p-4 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted mb-2.5">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2.5">
                 Related categories
               </p>
               <div className="flex flex-wrap gap-2">
@@ -342,7 +343,7 @@ export default async function BlogPostPage({ params }: Props) {
           )}
 
           <section className="mt-8 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm flex gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-on-brand">
               OD
             </span>
             <div className="min-w-0">
@@ -399,7 +400,7 @@ export default async function BlogPostPage({ params }: Props) {
         <aside className="space-y-4 lg:sticky lg:top-28">
           {toc.length >= 2 && (
             <div className="hidden sm:block rounded-xl border border-border bg-card p-4 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted mb-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted mb-2">
                 In this post
               </p>
               <ol className="space-y-2 text-sm">
@@ -434,7 +435,7 @@ export default async function BlogPostPage({ params }: Props) {
           />
 
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">
               Shop deals
             </p>
             <Link
@@ -504,7 +505,7 @@ function SidebarDealList({
       </ul>
       <Link
         href={viewAllHref}
-        className="mt-3 flex w-full items-center justify-center rounded-lg bg-brand px-3 py-2 text-xs font-bold text-white hover:bg-brand-dark"
+        className="mt-3 flex w-full items-center justify-center rounded-lg bg-brand px-3 py-2 text-xs font-bold text-on-brand hover:bg-brand-dark"
       >
         {viewAllLabel} →
       </Link>

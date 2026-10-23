@@ -31,13 +31,13 @@ export default async function InsightsPage({ searchParams }: Props) {
     <div className="max-w-5xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand">
             Operations
           </p>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Insights &amp; alerts
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-fg">
             Dead deals, broken links, schedule queue, campaign mix — last{" "}
             {days} days
           </p>
@@ -49,8 +49,8 @@ export default async function InsightsPage({ searchParams }: Props) {
               href={`/admin/insights?days=${d}`}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                 days === d
-                  ? "bg-brand text-white"
-                  : "border border-stone-200 bg-white text-gray-600 hover:border-brand hover:text-brand"
+                  ? "bg-brand text-on-brand"
+                  : "border border-border bg-card text-muted hover:border-brand hover:text-brand"
               }`}
             >
               {d}d
@@ -58,7 +58,7 @@ export default async function InsightsPage({ searchParams }: Props) {
           ))}
           <a
             href="/api/admin/export?type=products"
-            className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-on-brand transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
             Export products
@@ -70,7 +70,7 @@ export default async function InsightsPage({ searchParams }: Props) {
         <form action={runLinkCheckAction}>
           <button
             type="submit"
-            className="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:border-brand hover:text-brand transition-colors"
+            className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted hover:border-brand hover:text-brand transition-colors"
           >
             Run link health check (up to 20)
           </button>
@@ -79,7 +79,7 @@ export default async function InsightsPage({ searchParams }: Props) {
           <form action={publishDueAction}>
             <button
               type="submit"
-              className="rounded-xl border border-brand/30 bg-orange-50 px-4 py-2.5 text-sm font-semibold text-brand hover:bg-brand hover:text-white transition-colors"
+              className="rounded-xl border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand hover:bg-brand hover:text-on-brand transition-colors"
             >
               Publish due schedules now
             </button>
@@ -131,7 +131,7 @@ export default async function InsightsPage({ searchParams }: Props) {
               title="Tokens expiring soon"
               subtitle="Reconnect in Automation within 7 days"
             >
-              <ul className="divide-y divide-stone-50">
+              <ul className="divide-y divide-border-subtle">
                 {data.tokensExpiring.map((t) => (
                   <li
                     key={t.platform}
@@ -139,11 +139,11 @@ export default async function InsightsPage({ searchParams }: Props) {
                   >
                     <Link
                       href="/admin/automation"
-                      className="text-xs font-medium text-amber-800 hover:text-brand"
+                      className="text-xs font-medium text-warning hover:text-brand"
                     >
                       {t.platform} · {t.pageName}
                     </Link>
-                    <span className="text-[10px] tabular-nums text-amber-700">
+                    <span className="text-xs tabular-nums text-warning">
                       {new Date(t.tokenExpiresAt).toLocaleDateString()}
                     </span>
                   </li>
@@ -157,13 +157,13 @@ export default async function InsightsPage({ searchParams }: Props) {
               subtitle={`Last ${days}d · retry from Automation`}
               className={data.tokensExpiring.length === 0 ? "col-span-2" : ""}
             >
-              <ul className="divide-y divide-stone-50">
+              <ul className="divide-y divide-border-subtle">
                 {data.failedPosts.map((f) => (
                   <li key={f.id} className="py-2">
-                    <p className="text-xs font-medium text-gray-900 line-clamp-1">
+                    <p className="text-xs font-medium text-foreground line-clamp-1">
                       {f.productTitle}
                     </p>
-                    <p className="text-[10px] text-red-600 line-clamp-1">
+                    <p className="text-xs text-danger line-clamp-1">
                       {f.platform}: {f.error}
                     </p>
                   </li>
@@ -179,7 +179,7 @@ export default async function InsightsPage({ searchParams }: Props) {
           {data.topProducts.length === 0 ? (
             <Empty />
           ) : (
-            <ul className="divide-y divide-stone-50">
+            <ul className="divide-y divide-border-subtle">
               {data.topProducts.map((p) => (
                 <li
                   key={p.id}
@@ -187,17 +187,13 @@ export default async function InsightsPage({ searchParams }: Props) {
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
-                      className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-black uppercase ${
-                        p.marketplace === "UK"
-                          ? "bg-sky-500 text-white"
-                          : "bg-brand text-white"
-                      }`}
+                      className="shrink-0 rounded-md bg-card-muted px-1.5 py-0.5 text-xs font-semibold text-foreground ring-1 ring-border"
                     >
                       {p.marketplace === "UK" ? "UK" : "US"}
                     </span>
                     <Link
                       href={`/admin/analytics/product/${p.id}`}
-                      className="text-xs font-medium text-gray-900 hover:text-brand line-clamp-1"
+                      className="text-xs font-medium text-foreground hover:text-brand line-clamp-1"
                     >
                       {p.title}
                     </Link>
@@ -215,13 +211,13 @@ export default async function InsightsPage({ searchParams }: Props) {
           {data.clicksByMarketplace.length === 0 ? (
             <Empty />
           ) : (
-            <ul className="divide-y divide-stone-50">
+            <ul className="divide-y divide-border-subtle">
               {data.clicksByMarketplace.map((m) => (
                 <li
                   key={m.marketplace}
                   className="flex items-center justify-between gap-2 py-2"
                 >
-                  <span className="text-xs font-medium text-gray-900">
+                  <span className="text-xs font-medium text-foreground">
                     {m.marketplace === "UK"
                       ? "Amazon.co.uk (UK)"
                       : "Amazon.com (US)"}
@@ -242,13 +238,13 @@ export default async function InsightsPage({ searchParams }: Props) {
           {data.byCampaign.length === 0 ? (
             <Empty hint="No attributed clicks yet. Social auto-post uses ?src=." />
           ) : (
-            <ul className="divide-y divide-stone-50">
+            <ul className="divide-y divide-border-subtle">
               {data.byCampaign.map((c) => (
                 <li
                   key={c.campaign}
                   className="flex items-center justify-between gap-2 py-2"
                 >
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-800">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
                     <Radio className="h-3 w-3 text-brand" />
                     {c.campaign}
                   </span>
@@ -268,16 +264,16 @@ export default async function InsightsPage({ searchParams }: Props) {
           {data.deadProducts.length === 0 ? (
             <Empty hint="None — good coverage." />
           ) : (
-            <ul className="divide-y divide-stone-50">
+            <ul className="divide-y divide-border-subtle">
               {data.deadProducts.map((p) => (
                 <li key={p.id} className="py-2">
                   <Link
                     href={`/admin/products/${p.id}/edit`}
-                    className="text-xs font-medium text-gray-900 hover:text-brand line-clamp-1"
+                    className="text-xs font-medium text-foreground hover:text-brand line-clamp-1"
                   >
                     {p.title}
                   </Link>
-                  <p className="text-[10px] text-stone-400">
+                  <p className="text-xs text-muted-fg">
                     Added {new Date(p.createdAt).toLocaleDateString()}
                   </p>
                 </li>
@@ -290,7 +286,7 @@ export default async function InsightsPage({ searchParams }: Props) {
           {data.brokenLinks.length === 0 ? (
             <Empty hint="No broken flags. Run a check periodically." />
           ) : (
-            <ul className="divide-y divide-stone-50">
+            <ul className="divide-y divide-border-subtle">
               {data.brokenLinks.map((p) => (
                 <li
                   key={p.id}
@@ -298,11 +294,11 @@ export default async function InsightsPage({ searchParams }: Props) {
                 >
                   <Link
                     href={`/admin/products/${p.id}/edit`}
-                    className="text-xs font-medium text-red-700 hover:underline line-clamp-1"
+                    className="text-xs font-medium text-danger hover:underline line-clamp-1"
                   >
                     {p.title}
                   </Link>
-                  <span className="text-[10px] uppercase font-semibold text-red-600">
+                  <span className="text-xs uppercase font-semibold text-danger">
                     {p.status}
                   </span>
                 </li>
@@ -319,16 +315,16 @@ export default async function InsightsPage({ searchParams }: Props) {
           {data.scheduled.length === 0 ? (
             <Empty hint="No scheduled drafts. Set a schedule on product edit." />
           ) : (
-            <ul className="divide-y divide-stone-50 sm:columns-2 sm:gap-6">
+            <ul className="divide-y divide-border-subtle sm:columns-2 sm:gap-6">
               {data.scheduled.map((p) => (
                 <li key={p.id} className="break-inside-avoid py-2">
                   <Link
                     href={`/admin/products/${p.id}/edit`}
-                    className="text-xs font-medium text-gray-900 hover:text-brand line-clamp-1"
+                    className="text-xs font-medium text-foreground hover:text-brand line-clamp-1"
                   >
                     {p.title}
                   </Link>
-                  <p className="text-[10px] text-stone-400 tabular-nums">
+                  <p className="text-xs text-muted-fg tabular-nums">
                     {new Date(p.scheduledAt).toLocaleString()}
                   </p>
                 </li>
@@ -338,13 +334,13 @@ export default async function InsightsPage({ searchParams }: Props) {
         </Card>
       </div>
 
-      <p className="text-[11px] text-stone-400 max-w-2xl leading-relaxed">
+      <p className="text-xs text-muted-fg max-w-2xl leading-relaxed">
         Daily cron:{" "}
-        <code className="text-[10px] bg-stone-100 px-1 rounded">
+        <code className="text-xs bg-card-muted px-1 rounded">
           GET /api/cron/daily
         </code>{" "}
         with header{" "}
-        <code className="text-[10px] bg-stone-100 px-1 rounded">
+        <code className="text-xs bg-card-muted px-1 rounded">
           Authorization: Bearer CRON_SECRET
         </code>
         . Publishes due schedules and sends a Telegram digest if connected.
@@ -376,15 +372,15 @@ function Stat({
 }) {
   return (
     <div
-      className={`rounded-xl sm:rounded-2xl border bg-white px-2.5 sm:px-4 py-2.5 sm:py-3 shadow-sm transition-colors hover:border-brand/40 ${
-        warn ? "border-amber-200" : "border-stone-200/80"
+      className={`rounded-xl sm:rounded-2xl border bg-card px-2.5 sm:px-4 py-2.5 sm:py-3 shadow-sm transition-colors hover:border-brand/40 ${
+        warn ? "border-warning/30" : "border-border"
       }`}
     >
       <div className="flex items-center gap-1.5 text-brand">{icon}</div>
-      <p className="mt-1 text-[10px] sm:text-[11px] text-stone-500 leading-tight">
+      <p className="mt-1 text-xs text-muted-fg leading-tight">
         {label}
       </p>
-      <p className="text-lg sm:text-xl font-bold tabular-nums text-gray-900">
+      <p className="text-lg sm:text-xl font-bold tabular-nums text-foreground">
         {value}
       </p>
     </div>
@@ -404,13 +400,13 @@ function Card({
 }) {
   return (
     <section
-      className={`rounded-xl sm:rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden transition-all hover:border-brand/45 min-w-0 ${className}`}
+      className={`rounded-xl sm:rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-all hover:border-brand/45 min-w-0 ${className}`}
     >
-      <div className="border-b border-stone-100 px-2.5 sm:px-4 py-2.5 sm:py-3">
-        <h2 className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1">
+      <div className="border-b border-border-subtle px-2.5 sm:px-4 py-2.5 sm:py-3">
+        <h2 className="text-xs sm:text-sm font-semibold text-foreground line-clamp-1">
           {title}
         </h2>
-        <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5 line-clamp-2">
+        <p className="text-xs text-muted-fg mt-0.5 line-clamp-2">
           {subtitle}
         </p>
       </div>
@@ -423,7 +419,7 @@ function Card({
 
 function Empty({ hint }: { hint?: string }) {
   return (
-    <p className="text-xs text-stone-500 py-6 text-center">
+    <p className="text-xs text-muted-fg py-6 text-center">
       {hint || "Nothing here yet."}
     </p>
   );

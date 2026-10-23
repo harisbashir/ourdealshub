@@ -104,7 +104,7 @@ const PLATFORMS: PlatformConfig[] = [
             Graph API Explorer
           </DocLink>
           , pick your app + <strong>Page</strong>, add{" "}
-          <code className="text-[11px] bg-stone-100 px-1 rounded">
+          <code className="text-xs bg-card-muted px-1 rounded">
             pages_manage_posts
           </code>
           , generate a <strong>Page</strong> access token.
@@ -236,13 +236,13 @@ export function AutomationWorkspace({
           type="button"
           disabled={pending}
           onClick={onRetry}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand/20 hover:bg-brand-dark disabled:opacity-60 transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand shadow-sm shadow-brand/20 hover:bg-brand-dark disabled:opacity-60 transition-colors"
         >
           <RefreshCw className={`h-4 w-4 ${pending ? "animate-spin" : ""}`} />
           Retry failed posts now
         </button>
         {retryMsg && (
-          <span className="text-xs font-medium text-emerald-700">{retryMsg}</span>
+          <span className="text-xs font-medium text-success">{retryMsg}</span>
         )}
       </div>
 
@@ -264,23 +264,23 @@ export function AutomationWorkspace({
         <CaptionPreview deal={previewDeal} />
       )}
 
-      <section className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden transition-all hover:border-brand/40">
-        <div className="border-b border-stone-100 px-4 sm:px-5 py-3.5">
-          <h2 className="text-base font-semibold text-gray-900">
+      <section className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-all hover:border-brand/40">
+        <div className="border-b border-border-subtle px-4 sm:px-5 py-3.5">
+          <h2 className="text-base font-semibold text-foreground">
             Recent post activity
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-muted-fg mt-0.5">
             Auto-posts when a deal first becomes published
           </p>
         </div>
         {activity.length === 0 ? (
-          <p className="px-4 py-10 text-center text-sm text-gray-500">
+          <p className="px-4 py-10 text-center text-sm text-muted-fg">
             No social posts yet. Publish a deal with Social auto-post enabled.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
+              <thead className="bg-card-muted text-xs uppercase tracking-wide text-muted-fg">
                 <tr>
                   <th className="px-4 py-2.5 font-semibold">Deal</th>
                   <th className="px-4 py-2.5 font-semibold">Platform</th>
@@ -288,35 +288,35 @@ export function AutomationWorkspace({
                   <th className="px-4 py-2.5 font-semibold">Result</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-50">
+              <tbody className="divide-y divide-border-subtle">
                 {activity.map((row) => (
                   <tr
                     key={row.id}
-                    className="transition-colors hover:bg-orange-50/60"
+                    className="transition-colors hover:bg-brand-soft"
                   >
                     <td className="px-4 py-3 max-w-[16rem]">
                       <Link
                         href={`/admin/products/${row.productId}/edit`}
-                        className="text-xs font-medium text-gray-900 line-clamp-2 hover:text-brand"
+                        className="text-xs font-medium text-foreground line-clamp-2 hover:text-brand"
                       >
                         {row.productTitle}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">
                       {PLATFORM_LABEL[row.platform] || row.platform}
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${
                           row.status === "ok"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700"
+                            ? "bg-success-soft text-success"
+                            : "bg-danger-soft text-danger"
                         }`}
                       >
                         {row.status === "ok" ? "Published" : "Failed"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-gray-500 max-w-[14rem]">
+                    <td className="px-4 py-3 text-xs text-muted-fg max-w-[14rem]">
                       <span className="line-clamp-2 font-mono">
                         {row.status === "ok"
                           ? row.externalId
@@ -324,7 +324,7 @@ export function AutomationWorkspace({
                             : "OK"
                           : row.error || "Error"}
                       </span>
-                      <span className="block text-[10px] text-stone-400 mt-0.5 tabular-nums">
+                      <span className="block text-xs text-muted-fg mt-0.5 tabular-nums">
                         {new Date(row.createdAt).toLocaleString()}
                       </span>
                     </td>
@@ -359,48 +359,48 @@ function PlatformCard({
   const disabled = connection.configured && !connection.connected;
 
   return (
-    <div className="flex h-full flex-col rounded-xl sm:rounded-2xl border border-stone-200/90 bg-white p-2.5 sm:p-4 shadow-sm transition-all duration-200 hover:border-brand hover:shadow-md hover:shadow-brand/10">
+    <div className="flex h-full flex-col rounded-xl sm:rounded-2xl border border-border bg-card p-2.5 sm:p-4 shadow-sm transition-all duration-200 hover:border-brand hover:shadow-md hover:shadow-brand/10">
       <div className="flex items-start gap-2 sm:gap-3 min-w-0">
-        <span className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-orange-50 text-brand">
+        <span className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-brand-soft text-brand">
           <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] sm:text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
+          <p className="text-xs sm:text-sm font-semibold text-foreground leading-snug line-clamp-2">
             {config.label}
           </p>
           {live ? (
-            <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-emerald-700 flex items-center gap-1">
+            <p className="mt-0.5 text-xs font-medium text-success flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
               <span className="truncate">Connected</span>
             </p>
           ) : disabled ? (
-            <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-amber-700 flex items-center gap-1">
+            <p className="mt-0.5 text-xs font-medium text-warning flex items-center gap-1">
               <AlertCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
               Disabled
             </p>
           ) : (
-            <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-amber-700 flex items-center gap-1">
+            <p className="mt-0.5 text-xs font-medium text-warning flex items-center gap-1">
               <AlertCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
               <span className="truncate">Setup required</span>
             </p>
           )}
           {connection.pageName && live && (
-            <p className="mt-0.5 text-[10px] sm:text-[11px] text-gray-500 truncate hidden sm:block">
+            <p className="mt-0.5 text-xs text-muted-fg truncate hidden sm:block">
               {connection.pageName}
             </p>
           )}
           {connection.expiresSoon && (
-            <p className="mt-0.5 text-[10px] font-semibold text-amber-700">
+            <p className="mt-0.5 text-xs font-semibold text-warning">
               Token expires soon
             </p>
           )}
           {!connection.configured && (
-            <p className="mt-0.5 text-[10px] sm:text-[11px] text-gray-400 leading-snug line-clamp-2 hidden sm:block">
+            <p className="mt-0.5 text-xs text-muted-fg leading-snug line-clamp-2 hidden sm:block">
               {config.setupHint}
             </p>
           )}
           {connection.lastError && connection.configured && (
-            <p className="mt-0.5 text-[10px] sm:text-[11px] text-red-600 line-clamp-1 sm:line-clamp-2">
+            <p className="mt-0.5 text-xs text-danger line-clamp-1 sm:line-clamp-2">
               {connection.lastError}
             </p>
           )}
@@ -414,7 +414,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={() => onToggle(false)}
-              className="rounded-md sm:rounded-lg border border-red-200 bg-red-50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+              className="rounded-md sm:rounded-lg border border-danger/30 bg-danger-soft px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-danger hover:bg-danger-soft disabled:opacity-50"
             >
               Disable
             </button>
@@ -422,7 +422,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={onSetup}
-              className="rounded-md sm:rounded-lg border border-brand/30 bg-orange-50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-brand hover:bg-brand hover:text-white transition-colors"
+              className="rounded-md sm:rounded-lg border border-brand/30 bg-brand-soft px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-on-brand transition-colors"
             >
               Reconnect
             </button>
@@ -433,7 +433,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={() => onToggle(true)}
-              className="rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
+              className="rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-dark disabled:opacity-50"
             >
               Enable
             </button>
@@ -441,7 +441,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={onSetup}
-              className="rounded-md sm:rounded-lg border border-stone-200 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-gray-600 hover:border-brand hover:text-brand"
+              className="rounded-md sm:rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-muted hover:border-brand hover:text-brand"
             >
               Reconnect
             </button>
@@ -449,7 +449,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={onRemove}
-              className="rounded-md sm:rounded-lg border border-stone-200 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-gray-500 hover:border-red-300 hover:text-red-600"
+              className="rounded-md sm:rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium text-muted-fg hover:border-danger/30 hover:text-danger"
             >
               Remove
             </button>
@@ -459,7 +459,7 @@ function PlatformCard({
             type="button"
             disabled={pending}
             onClick={onSetup}
-            className="rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
+            className="rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-dark disabled:opacity-50"
           >
             Enable
           </button>
@@ -505,17 +505,17 @@ function SetupPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-brand/30 bg-white p-4 sm:p-5 shadow-sm shadow-brand/5">
+    <section className="rounded-2xl border border-brand/30 bg-card p-4 sm:p-5 shadow-sm shadow-brand/5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-brand">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-soft text-brand">
             <Icon className="h-4 w-4" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-foreground">
               Connect {config.label}
             </h2>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-muted-fg">
               Credentials stay on the server — never shown to the browser after
               save.
             </p>
@@ -524,13 +524,13 @@ function SetupPanel({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs font-medium text-gray-500 hover:text-brand"
+          className="text-xs font-medium text-muted-fg hover:text-brand"
         >
           Close
         </button>
       </div>
 
-      <ol className="mb-4 space-y-1.5 text-sm text-gray-600 list-decimal pl-5">
+      <ol className="mb-4 space-y-1.5 text-sm text-muted list-decimal pl-5">
         {config.guide.steps.map((step, i) => (
           <li key={i}>{step}</li>
         ))}
@@ -538,7 +538,7 @@ function SetupPanel({
 
       <form action={onConnect} className="space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
+          <label className="block text-xs font-semibold text-muted mb-1">
             {config.guide.idLabel}
           </label>
           <input
@@ -546,11 +546,11 @@ function SetupPanel({
             required
             defaultValue={connection.pageId || ""}
             placeholder={config.guide.idPlaceholder}
-            className="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/15"
+            className="w-full rounded-xl border border-border bg-card-muted px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:bg-card focus:ring-2 focus:ring-brand/15"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
+          <label className="block text-xs font-semibold text-muted mb-1">
             {config.guide.tokenLabel}
           </label>
           <input
@@ -559,32 +559,32 @@ function SetupPanel({
             required
             autoComplete="off"
             placeholder={config.guide.tokenPlaceholder}
-            className="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/15"
+            className="w-full rounded-xl border border-border bg-card-muted px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:bg-card focus:ring-2 focus:ring-brand/15"
           />
         </div>
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
             {error}
           </p>
         )}
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-60"
+          className="rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark disabled:opacity-60"
         >
           {pending ? "Saving…" : `Save & enable ${config.label}`}
         </button>
       </form>
 
       {sample && (
-        <div className="mt-5 border-t border-stone-100 pt-4">
-          <p className="text-xs font-semibold text-gray-700 mb-1">
+        <div className="mt-5 border-t border-border-subtle pt-4">
+          <p className="text-xs font-semibold text-muted mb-1">
             Sample caption preview
           </p>
-          <p className="text-[10px] text-gray-400 mb-2 line-clamp-1">
+          <p className="text-xs text-muted-fg mb-2 line-clamp-1">
             Based on: {previewDeal?.title}
           </p>
-          <pre className="max-h-36 overflow-auto rounded-lg bg-stone-50 border border-stone-100 px-2.5 py-2 text-[11px] leading-relaxed text-gray-600 whitespace-pre-wrap font-mono">
+          <pre className="max-h-36 overflow-auto rounded-lg bg-card-muted border border-border-subtle px-2.5 py-2 text-xs leading-relaxed text-muted whitespace-pre-wrap font-mono">
             {sample.caption}
           </pre>
           <div className="mt-2">
@@ -602,13 +602,13 @@ function CaptionPreview({ deal }: { deal: ShareDeal }) {
   const livePlatforms: SocialPlatform[] = ["facebook", "threads", "telegram"];
 
   return (
-    <section className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm transition-all hover:border-brand/40">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-brand/40">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">
+          <h2 className="text-sm font-semibold text-foreground">
             Caption preview
           </h2>
-          <p className="text-[11px] text-gray-500 line-clamp-1">
+          <p className="text-xs text-muted-fg line-clamp-1">
             Latest deal: {deal.title}
           </p>
         </div>
@@ -618,10 +618,10 @@ function CaptionPreview({ deal }: { deal: ShareDeal }) {
               key={p}
               type="button"
               onClick={() => setPlatform(p)}
-              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize ${
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${
                 platform === p
-                  ? "bg-brand text-white"
-                  : "border border-stone-200 text-gray-600 hover:border-brand hover:text-brand"
+                  ? "bg-brand text-on-brand"
+                  : "border border-border text-muted hover:border-brand hover:text-brand"
               }`}
             >
               {p}
@@ -629,12 +629,12 @@ function CaptionPreview({ deal }: { deal: ShareDeal }) {
           ))}
         </div>
       </div>
-      <pre className="max-h-40 overflow-auto rounded-lg bg-stone-50 border border-stone-100 px-2.5 py-2 text-[11px] leading-relaxed text-gray-600 whitespace-pre-wrap font-mono">
+      <pre className="max-h-40 overflow-auto rounded-lg bg-card-muted border border-border-subtle px-2.5 py-2 text-xs leading-relaxed text-muted whitespace-pre-wrap font-mono">
         {post.caption}
       </pre>
       <div className="mt-2 flex gap-2">
         <CopyTextButton text={post.caption} label="Copy" />
-        <span className="text-[10px] text-stone-400 self-center tabular-nums">
+        <span className="text-xs text-muted-fg self-center tabular-nums">
           {post.countLabel}
         </span>
       </div>

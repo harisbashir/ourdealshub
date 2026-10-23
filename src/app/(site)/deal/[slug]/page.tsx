@@ -3,20 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ChevronRight } from "lucide-react";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SafeProductImage } from "@/components/SafeProductImage";
 import { AffiliateLinkNote } from "@/components/AffiliateDisclosure";
 import { StickyDealCta } from "@/components/StickyDealCta";
-import {
-  publicProductWhere,
-  getRelatedProducts,
-} from "@/lib/product-query";
-import {
-  marketplaceBadge,
-  marketplaceLabel,
-  marketplaceTagClass,
-  marketplaceShipsNote,
-} from "@/lib/marketplace";
+import { SaveButton } from "@/components/SaveButton";
+import { ShareButton } from "@/components/ShareButton";
+import { publicProductWhere, getRelatedProducts } from "@/lib/product-query";
+import { marketplaceLabel, marketplaceShipsNote } from "@/lib/marketplace";
+import { AFFILIATE_LINK_REL } from "@/lib/affiliate-disclosure";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -31,21 +27,18 @@ const getPublicDeal = cache((slug: string) =>
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getPublicDeal(slug);
-  if (!product) return { title: "Deal" };
+  if (!product) return { title: "Pick not found" };
 
   const desc =
-    product.dealPost?.slice(0, 155) ||
-    product.description?.slice(0, 155) ||
-    `${product.title} — curated deal on OurDealsHub.`;
-
+    (product.dealPost || product.description || "")
+      .replace(/\s+/g, " ")
+      .slice(0, 155) || `${product.title} — a curated pick on OurDealsHub.`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   return {
     title: product.title,
     description: desc,
-    alternates: {
-      canonical: `/deal/${product.slug}`,
-    },
+    alternates: { canonical: `/deal/${product.slug}` },
     openGraph: {
       title: product.title,
       description: desc,
@@ -67,9 +60,15 @@ export default async function DealPage({ params }: Props) {
   const product = await getPublicDeal(slug);
   if (!product) notFound();
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
   const goUrl = `/go/${product.slug}`;
   const body = product.dealPost || product.description;
+  const crumbs = [
+    ...(product.category.parent
+      ? [{ name: product.category.parent.name, href: `/category/${product.category.parent.slug}` }]
+      : []),
+    { name: product.category.name, href: `/category/${product.category.slug}` },
+  ];
 
   const related = await getRelatedProducts({
     productId: product.id,
@@ -79,17 +78,34 @@ export default async function DealPage({ params }: Props) {
     take: 8,
   });
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.title,
-    image: product.imageUrl,
-    description: body || undefined,
-    url: `${siteUrl}/deal/${product.slug}`,
-  };
+  // No offers/price: prices may only be shown from Amazon's live data
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.title,
+      image: product.imageUrl,
+      description: body || undefined,
+      url: `${siteUrl}/deal/${product.slug}`,
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { name: "Home", href: "/" },
+        ...crumbs,
+        { name: product.title, href: `/deal/${product.slug}` },
+      ].map((c, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: c.name,
+        item: `${siteUrl}${c.href}`,
+      })),
+    },
+  ];
 
   return (
-    <div className="site-container py-10 pb-24 sm:pb-10">
+    <div className="pb-24 lg:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -97,118 +113,84 @@ export default async function DealPage({ params }: Props) {
         }}
       />
 
-      <StickyDealCta goUrl={goUrl} marketplace={product.marketplace} />
+      <StickyDealCta goUrl={goUrl} title={product.title} />
 
-      <nav className="text-sm text-muted mb-6">
-        <Link href="/" className="hover:text-brand">
-          Home
-        </Link>
-        {product.category.parent && (
-          <>
-            <span className="mx-2">/</span>
-            <Link
-              href={`/category/${product.category.parent.slug}`}
-              className="hover:text-brand"
-            >
-              {product.category.parent.name}
-            </Link>
-          </>
-        )}
-        <span className="mx-2">/</span>
-        <Link
-          href={`/category/${product.category.slug}`}
-          className="hover:text-brand"
-        >
-          {product.category.name}
-        </Link>
+      <nav aria-label="Breadcrumb" className="site-container pt-4">
+        <ol className="flex flex-wrap items-center gap-1 text-[13px] text-muted">
+          <li>
+            <Link href="/" className="hover:text-foreground">Home</Link>
+          </li>
+          {crumbs.map((c) => (
+            <li key={c.href} className="flex items-center gap-1">
+              <ChevronRight className="h-3.5 w-3.5 text-muted-fg" aria-hidden />
+              <Link href={c.href} className="hover:text-foreground">{c.name}</Link>
+            </li>
+          ))}
+        </ol>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[420px_1fr] lg:items-start">
-        {/* Match common deal-site pattern: 420×420 frame, image contained (no stretch/pixelation) */}
-        <div className="mx-auto w-full max-w-[420px] lg:mx-0">
-          <div className="relative mx-auto h-[min(100vw-2rem,420px)] w-[min(100vw-2rem,420px)] max-h-[420px] max-w-[420px] rounded-2xl overflow-hidden bg-white border border-border">
-            <span
-              className={`absolute left-3 top-3 z-10 rounded-md border px-2.5 py-1 text-xs font-black uppercase tracking-wider ${marketplaceTagClass(product.marketplace)}`}
-            >
-              {marketplaceBadge(product.marketplace)}
-            </span>
-            <SafeProductImage
-              src={product.imageUrl}
-              alt={product.title}
-              fill
-              className="object-contain"
-              sizes="420px"
-              priority
-            />
-          </div>
+      <div className="site-container grid gap-6 pt-4 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-10 lg:pt-6">
+        <div className="shelf relative mx-auto aspect-square w-full max-w-[26rem] overflow-hidden rounded-3xl ring-1 ring-border-subtle">
+          <SafeProductImage
+            src={product.imageUrl}
+            alt={product.title}
+            fill
+            priority
+            className="object-contain p-6"
+            sizes="(max-width:1024px) 92vw, 416px"
+          />
         </div>
 
-        <div>
-          <div className="mb-3 inline-flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-md border px-2.5 py-1 text-xs font-black uppercase tracking-wider ${marketplaceTagClass(product.marketplace)}`}
-            >
-              {marketplaceBadge(product.marketplace)}
-            </span>
-            <span className="text-sm font-semibold text-foreground">
-              {marketplaceLabel(product.marketplace)}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium text-muted">
+            {marketplaceLabel(product.marketplace)}
+          </p>
+          <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight text-foreground sm:text-[32px]">
             {product.title}
           </h1>
-          <p className="mt-3 text-sm text-muted leading-relaxed max-w-xl">
+          <p className="mt-2 text-[15px] text-muted">
             {marketplaceShipsNote(product.marketplace)}
           </p>
 
-          <div className="mt-6 max-w-md" id="deal-primary-cta">
-            <AffiliateLinkNote className="mb-3" />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href={goUrl}
-                target="_blank"
-                rel="nofollow sponsored noopener noreferrer"
-                className="flex-1 rounded-lg bg-brand py-3.5 text-center text-base font-bold text-white hover:bg-brand-dark transition-colors"
-              >
-                View on Amazon
-              </a>
+          <div id="deal-primary-cta" className="mt-5 max-w-md space-y-3">
+            <a
+              href={goUrl}
+              target="_blank"
+              rel={AFFILIATE_LINK_REL}
+              className="pressable flex h-[3.25rem] w-full items-center justify-center rounded-full bg-brand text-[17px] font-semibold text-on-brand hover:bg-brand-dark"
+            >
+              View on Amazon
+            </a>
+            <div className="flex gap-3">
+              <SaveButton slug={product.slug} title={product.title} variant="button" />
+              <ShareButton title={product.title} path={`/deal/${product.slug}`} />
             </div>
+            <AffiliateLinkNote />
           </div>
 
-          <div className="mt-8">
-            <h2 className="text-sm font-semibold text-foreground mb-2">
-              Deal details
+          <section className="mt-8 max-w-2xl" aria-labelledby="why-heading">
+            <h2 id="why-heading" className="text-xl font-semibold text-foreground">
+              Why it&apos;s here
             </h2>
             {body ? (
-              <p className="text-sm text-muted whitespace-pre-line leading-relaxed">
+              <p className="mt-2 whitespace-pre-line text-[17px] leading-relaxed text-foreground/90">
                 {body}
               </p>
             ) : (
-              <p className="text-sm text-muted leading-relaxed">
-                Full product information is on Amazon. Use View on Amazon for
-                specs, price, and availability.
+              <p className="mt-2 text-[17px] leading-relaxed text-muted">
+                Full details, current price and delivery options are on Amazon.
               </p>
             )}
-          </div>
-
-          <p className="mt-8 text-xs text-muted-fg leading-relaxed max-w-xl">
-            OurDealsHub is a participant in the Amazon Services LLC Associates
-            Program. Prices and availability may change on Amazon.{" "}
-            <Link href="/disclosure" className="underline hover:text-brand">
-              Full affiliate disclosure
-            </Link>
-            .
-          </p>
+          </section>
         </div>
       </div>
 
       {related.length > 0 && (
         <ProductGrid
-          title="Related picks"
+          title="You Might Also Like"
           subtitle={`More in ${product.category.name}`}
           products={related}
           layout="carousel"
-          icon="grid"
         />
       )}
     </div>

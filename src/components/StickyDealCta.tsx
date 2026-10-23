@@ -1,66 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import {
-  AMAZON_ASSOCIATE_STATEMENT,
-  LINK_LEVEL_DISCLOSURE,
-} from "@/lib/affiliate-disclosure";
+import { AFFILIATE_LINK_REL } from "@/lib/affiliate-disclosure";
 
 /**
- * Mobile-only sticky Amazon CTA. Hides while the in-page CTA is on screen
- * so the button is not duplicated.
+ * Phone/tablet CTA that docks above the tab bar once the in-page button
+ * scrolls away, so it's never duplicated on screen.
  */
 export function StickyDealCta({
   goUrl,
-  marketplace: _marketplace,
+  title,
   anchorId = "deal-primary-cta",
 }: {
   goUrl: string;
-  marketplace: string | null | undefined;
+  title: string;
   anchorId?: string;
 }) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     const el = document.getElementById(anchorId);
-    if (!el) {
-      setShow(true);
-      return;
-    }
-
+    if (!el) return;
     const io = new IntersectionObserver(
-      ([entry]) => {
-        setShow(!entry.isIntersecting);
-      },
-      { root: null, threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+      ([entry]) => setShow(!entry.isIntersecting && entry.boundingClientRect.top < 0),
+      { threshold: 0 }
     );
     io.observe(el);
     return () => io.disconnect();
   }, [anchorId]);
 
-  if (!show) return null;
-
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 sm:hidden pointer-events-none">
-      <div className="pointer-events-auto border-t border-border bg-background/95 backdrop-blur-md px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.35)]">
+    <div
+      aria-hidden={!show}
+      className={`bar-material fixed inset-x-0 z-40 border-t border-border-subtle px-4 py-2.5 transition-transform duration-200 lg:hidden ${
+        show ? "translate-y-0" : "pointer-events-none translate-y-full opacity-0"
+      }`}
+      style={{ bottom: "calc(3.75rem + env(safe-area-inset-bottom))" }}
+    >
+      <div className="mx-auto flex max-w-lg items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-1 text-[13px] font-medium text-foreground">{title}</p>
+          <p className="text-xs text-muted">Paid link</p>
+        </div>
         <a
           href={goUrl}
           target="_blank"
-          rel="nofollow sponsored noopener noreferrer"
-          className="block w-full rounded-lg bg-brand py-3 text-center text-sm font-bold text-white hover:bg-brand-dark transition-colors"
+          rel={AFFILIATE_LINK_REL}
+          tabIndex={show ? 0 : -1}
+          className="pressable inline-flex h-11 shrink-0 items-center rounded-full bg-brand px-5 text-[15px] font-semibold text-on-brand hover:bg-brand-dark"
         >
           View on Amazon
         </a>
-        <p className="mt-1.5 text-[10px] text-muted-fg text-center leading-snug">
-          <span className="font-semibold text-foreground/80">
-            {LINK_LEVEL_DISCLOSURE}
-          </span>{" "}
-          {AMAZON_ASSOCIATE_STATEMENT}{" "}
-          <Link href="/disclosure" className="underline hover:text-brand">
-            Details
-          </Link>
-        </p>
       </div>
     </div>
   );

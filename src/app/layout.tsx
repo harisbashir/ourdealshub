@@ -1,35 +1,38 @@
-import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { themeInitScript } from "@/lib/theme-script";
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-dm-sans",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ),
   title: {
-    default: "OurDealsHub — Curated Amazon Deals",
+    default: "OurDealsHub — Curated Amazon Picks",
     template: "%s | OurDealsHub",
   },
   description:
-    "Curated Amazon product picks. As an Amazon Associate, OurDealsHub earns from qualifying purchases. Prices and availability may change on Amazon.",
+    "Hand-picked products on Amazon, explained in plain words. As an Amazon Associate, OurDealsHub earns from qualifying purchases.",
+  applicationName: "OurDealsHub",
+  appleWebApp: { capable: true, title: "OurDealsHub", statusBarStyle: "default" },
   openGraph: {
     siteName: "OurDealsHub",
     type: "website",
-    title: "OurDealsHub — Curated Amazon Deals",
+    title: "OurDealsHub — Curated Amazon Picks",
     description:
-      "Curated Amazon product picks. As an Amazon Associate, OurDealsHub earns from qualifying purchases.",
+      "Hand-picked products on Amazon, explained in plain words. As an Amazon Associate, OurDealsHub earns from qualifying purchases.",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Content extends under the notch / home indicator; safe-area insets pad it
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
+  ],
 };
 
 export default function RootLayout({
@@ -38,14 +41,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={dmSans.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className={`${dmSans.className} antialiased bg-background text-foreground`}>
-        <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </ThemeProvider>
+      <body className="antialiased bg-background text-foreground">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

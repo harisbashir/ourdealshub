@@ -30,7 +30,7 @@ export default async function EditProductPage({ params }: Props) {
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold text-foreground">Edit product</h1>
         <span
-          className="rounded-md border border-brand/40 bg-brand-soft px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-brand"
+          className="rounded-md border border-brand/40 bg-brand-soft px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-brand"
           title={marketplaceLabel(product.marketplace)}
         >
           {product.marketplace === "UK" ? "UK" : "US"}
@@ -42,8 +42,8 @@ export default async function EditProductPage({ params }: Props) {
       <ProductForm
         categories={categories}
         action={action}
-        amazonConfigured={isAmazonConfigured()}
-        geminiConfigured={isGeminiConfigured()}
+        amazonConfigured={await isAmazonConfigured()}
+        geminiConfigured={await isGeminiConfigured()}
         product={{
           title: product.title,
           description: product.description,

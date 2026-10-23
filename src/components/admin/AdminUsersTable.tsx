@@ -29,7 +29,7 @@ export function AdminUsersTable({
   const router = useRouter();
 
   return (
-    <div className="admin-shell-static rounded-xl bg-card border border-border shadow-sm overflow-hidden">
+    <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
       <AdminHScroll>
         <div className="min-w-[780px]">
           <div className="grid grid-cols-[minmax(120px,1fr)_minmax(140px,1.2fr)_auto_minmax(120px,1fr)_auto_auto_auto_auto] gap-x-2 items-center bg-card-muted text-left text-muted text-sm px-3 py-2.5 border-b border-border">
@@ -52,7 +52,7 @@ export function AdminUsersTable({
               return (
                 <article
                   key={a.id}
-                  className="admin-deal-card grid grid-cols-[minmax(120px,1fr)_minmax(140px,1.2fr)_auto_minmax(120px,1fr)_auto_auto_auto_auto] gap-x-2 items-center rounded-lg border border-border bg-card px-3 py-2.5 text-sm"
+                  className="grid grid-cols-[minmax(120px,1fr)_minmax(140px,1.2fr)_auto_minmax(120px,1fr)_auto_auto_auto_auto] gap-x-2 items-center rounded-lg border border-border bg-card px-3 py-2.5 text-sm"
                 >
                   <div className="px-1 min-w-0">
                     <span className="font-medium text-foreground">
@@ -77,23 +77,23 @@ export function AdminUsersTable({
                     </span>
                   </div>
 
-                  <div className="px-1 font-mono text-[11px] text-muted truncate">
+                  <div className="px-1 font-mono text-xs text-muted truncate">
                     {a.amazonTrackingId || a.amazonTrackingIdUk ? (
                       <span className="block truncate">
                         {a.amazonTrackingId ? (
                           <span title="US">US: {a.amazonTrackingId}</span>
                         ) : (
-                          <span className="text-amber-600 font-sans">US —</span>
+                          <span className="text-warning font-sans">US —</span>
                         )}
                         <br />
                         {a.amazonTrackingIdUk ? (
                           <span title="UK">UK: {a.amazonTrackingIdUk}</span>
                         ) : (
-                          <span className="text-amber-600 font-sans">UK —</span>
+                          <span className="text-warning font-sans">UK —</span>
                         )}
                       </span>
                     ) : (
-                      <span className="text-amber-600 font-sans font-medium">
+                      <span className="text-warning font-sans font-medium">
                         Not set
                       </span>
                     )}
@@ -111,8 +111,8 @@ export function AdminUsersTable({
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         a.isActive
-                          ? "bg-emerald-500/15 text-emerald-600"
-                          : "bg-red-500/15 text-red-600"
+                          ? "bg-success-soft text-success"
+                          : "bg-danger-soft text-danger"
                       }`}
                     >
                       {a.isActive ? "Active" : "Revoked"}

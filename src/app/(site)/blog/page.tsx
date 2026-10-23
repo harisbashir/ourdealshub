@@ -64,7 +64,7 @@ export default async function BlogIndexPage() {
                   </div>
                 )}
                 <div className="flex flex-1 flex-col p-4">
-                  <time className="text-[11px] font-medium text-muted-fg">
+                  <time className="text-xs font-medium text-muted-fg">
                     {p.publishedAt
                       ? new Date(p.publishedAt).toLocaleDateString(undefined, {
                           year: "numeric",

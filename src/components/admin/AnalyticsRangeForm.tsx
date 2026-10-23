@@ -32,20 +32,20 @@ export function AnalyticsRangeForm({
         type="date"
         value={start}
         onChange={(e) => setStart(e.target.value)}
-        className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-brand"
+        className="rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted outline-none focus:border-brand"
         aria-label="From date"
       />
-      <span className="text-[10px] text-stone-400">to</span>
+      <span className="text-xs text-muted-fg">to</span>
       <input
         type="date"
         value={end}
         onChange={(e) => setEnd(e.target.value)}
-        className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-brand"
+        className="rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted outline-none focus:border-brand"
         aria-label="To date"
       />
       <button
         type="submit"
-        className="rounded-lg border border-brand/30 bg-orange-50 px-2.5 py-1.5 text-[11px] font-semibold text-brand hover:bg-brand hover:text-white transition-colors"
+        className="rounded-lg border border-brand/30 bg-brand-soft px-2.5 py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-on-brand transition-colors"
       >
         Apply
       </button>

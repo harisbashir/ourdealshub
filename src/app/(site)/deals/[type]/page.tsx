@@ -26,26 +26,22 @@ const CONFIG: Record<
   {
     title: string;
     subtitle: string;
-    icon: "trending" | "sparkles" | "grid";
     filter: "trending" | "just-added" | "all";
   }
 > = {
   trending: {
-    title: "Top Trending",
-    subtitle: "Most clicked deals right now",
-    icon: "trending",
+    title: "Trending",
+    subtitle: "What people are opening most",
     filter: "trending",
   },
   "just-added": {
     title: "New",
-    subtitle: "Recently added products",
-    icon: "sparkles",
+    subtitle: "Just added",
     filter: "just-added",
   },
   all: {
-    title: "All Deals",
-    subtitle: "Every deal on OurDealsHub",
-    icon: "grid",
+    title: "All Picks",
+    subtitle: "Everything on OurDealsHub",
     filter: "all",
   },
 };
@@ -117,10 +113,11 @@ export default async function DealsTypePage({ params, searchParams }: Props) {
     <div>
       <ProductGrid
         title={conf.title}
-        subtitle={`${conf.subtitle}${market ? ` · Amazon ${market}` : ""} · ${total} total`}
+        subtitle={`${conf.subtitle}${market ? ` · Amazon ${market}` : ""} · ${total} ${total === 1 ? "pick" : "picks"}`}
         products={products}
         layout="grid"
-        icon={conf.icon}
+        headingLevel={1}
+        priorityCount={4}
       />
       <Pagination
         basePath={`/deals/${type}`}

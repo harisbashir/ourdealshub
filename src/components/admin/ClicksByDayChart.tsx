@@ -64,7 +64,7 @@ export function ClicksByDayChart({ days, maxDay, avgPerDay = 0 }: Props) {
                 x={pad.left - 8}
                 y={y + 3}
                 textAnchor="end"
-                className="fill-stone-400"
+                className="fill-muted-fg"
                 style={{ fontSize: 10, fontVariantNumeric: "tabular-nums" }}
               >
                 {t}
@@ -137,7 +137,7 @@ export function ClicksByDayChart({ days, maxDay, avgPerDay = 0 }: Props) {
                   x={x + barW / 2}
                   y={H - 14}
                   textAnchor="middle"
-                  className="fill-stone-400"
+                  className="fill-muted-fg"
                   style={{ fontSize: 9, fontVariantNumeric: "tabular-nums" }}
                 >
                   {d.day.slice(5)}
@@ -152,7 +152,7 @@ export function ClicksByDayChart({ days, maxDay, avgPerDay = 0 }: Props) {
           x={pad.left + innerW / 2}
           y={H - 2}
           textAnchor="middle"
-          className="fill-stone-400"
+          className="fill-muted-fg"
           style={{ fontSize: 9 }}
         >
           Day
@@ -162,7 +162,7 @@ export function ClicksByDayChart({ days, maxDay, avgPerDay = 0 }: Props) {
           y={pad.top + innerH / 2}
           textAnchor="middle"
           transform={`rotate(-90 12 ${pad.top + innerH / 2})`}
-          className="fill-stone-400"
+          className="fill-muted-fg"
           style={{ fontSize: 9 }}
         >
           Clicks

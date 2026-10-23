@@ -163,7 +163,7 @@ export function ProductForm({
           {fetchPending ? "Fetching…" : "Fetch image & details from link"}
         </button>
         {!amazonConfigured && (
-          <p className="mt-1 text-xs text-amber-600">
+          <p className="mt-1 text-xs text-warning">
             Amazon API is not configured — paste the image URL manually.
           </p>
         )}
@@ -237,7 +237,7 @@ export function ProductForm({
           className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand"
         />
         {!geminiConfigured && (
-          <p className="mt-1 text-xs text-amber-600">
+          <p className="mt-1 text-xs text-warning">
             Gemini is not configured — write the deal post manually.
           </p>
         )}
@@ -247,8 +247,8 @@ export function ProductForm({
         <div
           className={`rounded-lg border px-3 py-2 text-sm ${
             assistError
-              ? "border-red-500/30 bg-red-500/10 text-red-600"
-              : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+              ? "border-danger/30 bg-danger-soft text-danger"
+              : "border-success/30 bg-success-soft text-success"
           }`}
         >
           {assistError || assistMessage}
@@ -335,7 +335,7 @@ export function ProductForm({
             }
             className="w-full sm:w-auto rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand"
           />
-          <p className="mt-1 text-[11px] text-muted">
+          <p className="mt-1 text-xs text-muted">
             Draft stays unpublished until this time. Cron{" "}
             <code className="bg-card-muted px-1 rounded text-foreground">
               /api/cron/daily
@@ -348,7 +348,7 @@ export function ProductForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-60"
+        className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark disabled:opacity-60"
       >
         {product ? "Save changes" : "Save & publish"}
       </button>

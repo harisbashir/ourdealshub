@@ -34,8 +34,8 @@ export default async function NewProductPage() {
       </div>
       <AddDealWorkspace
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-        amazonConfigured={isAmazonConfigured()}
-        geminiConfigured={isGeminiConfigured()}
+        amazonConfigured={await isAmazonConfigured()}
+        geminiConfigured={await isGeminiConfigured()}
         autoPublish={settings.autoPublish}
         hasTrackingId={Boolean(trackingId)}
         trackingIdLabel={trackingId}

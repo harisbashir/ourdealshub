@@ -22,7 +22,7 @@ export function BlogPostsTable({ posts }: { posts: AdminBlogRow[] }) {
   const router = useRouter();
 
   return (
-    <div className="admin-shell-static rounded-xl bg-card border border-border shadow-sm overflow-hidden">
+    <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
       <AdminHScroll>
         <div className="min-w-[680px]">
           <div className="grid grid-cols-[minmax(200px,1.6fr)_auto_auto_auto_auto_auto] gap-x-2 items-center bg-card-muted text-left text-muted text-sm px-3 py-2.5 border-b border-border">
@@ -38,7 +38,7 @@ export function BlogPostsTable({ posts }: { posts: AdminBlogRow[] }) {
             {posts.map((p) => (
               <article
                 key={p.id}
-                className="admin-deal-card grid grid-cols-[minmax(200px,1.6fr)_auto_auto_auto_auto_auto] gap-x-2 items-center rounded-lg border border-border bg-card px-3 py-2.5 text-sm"
+                className="grid grid-cols-[minmax(200px,1.6fr)_auto_auto_auto_auto_auto] gap-x-2 items-center rounded-lg border border-border bg-card px-3 py-2.5 text-sm"
               >
                 <div className="px-1 min-w-0">
                   <p className="font-medium text-foreground line-clamp-2">
@@ -54,7 +54,7 @@ export function BlogPostsTable({ posts }: { posts: AdminBlogRow[] }) {
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       p.isPublished
-                        ? "bg-emerald-500/15 text-emerald-600"
+                        ? "bg-success-soft text-success"
                         : "bg-card-muted text-muted"
                     }`}
                   >

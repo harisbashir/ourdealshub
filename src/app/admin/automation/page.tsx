@@ -81,17 +81,17 @@ export default async function AutomationPage() {
   return (
     <div className="max-w-5xl space-y-5">
       <header>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">
+        <p className="text-xs font-semibold uppercase tracking-wider text-brand">
           Distribution
         </p>
-        <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+        <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
           Social Automation
         </h1>
-        <p className="mt-1 text-sm text-gray-500 max-w-2xl">
+        <p className="mt-1 text-sm text-muted-fg max-w-2xl">
           A deal is posted once when it first becomes Published. Draft, expired,
           and archived deals are not posted. Live auto-post: Facebook, Threads,
           Telegram (with daily rate caps). Tracked{" "}
-          <code className="text-[11px] bg-stone-100 px-1 rounded">/go?src=</code>{" "}
+          <code className="text-xs bg-card-muted px-1 rounded">/go?src=</code>{" "}
           links are used for click attribution.
         </p>
       </header>

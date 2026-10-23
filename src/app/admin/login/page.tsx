@@ -1,6 +1,8 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
+import { BrandMark } from "@/components/BrandMark";
+import { inputClass, labelClass, primaryButtonClass } from "@/components/admin/ui";
 import { FormEvent, useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -43,7 +45,7 @@ function LoginForm() {
     });
     setLoading(false);
     if (res?.error) {
-      setError("Invalid email or password");
+      setError("That email and password don't match. Check them and try again. After several tries, sign-in pauses for 15 minutes.");
       return;
     }
     router.push(callbackUrl);
@@ -51,66 +53,55 @@ function LoginForm() {
   }
 
   return (
-    <div className="admin-shell relative flex min-h-screen items-center justify-center px-4 py-10">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-70"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(229,62,62,0.12), transparent 55%), radial-gradient(ellipse 60% 40% at 100% 100%, rgba(229,62,62,0.06), transparent 50%)",
-        }}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card/95 p-7 sm:p-8 shadow-sm backdrop-blur">
-        <div className="text-center mb-7">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white font-bold text-xl shadow-md shadow-brand/30">
-            OD
-          </span>
-          <h1 className="mt-4 text-2xl font-bold text-foreground tracking-tight">
-            Admin sign in
-          </h1>
-          <p className="mt-1 text-sm text-muted">OurDealsHub console</p>
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
+      <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-[var(--shadow-card)] ring-1 ring-border-subtle sm:p-8">
+        <div className="mb-6 text-center">
+          <BrandMark className="mx-auto h-14 w-14" />
+          <h1 className="mt-4 text-[26px] font-bold tracking-tight text-foreground">Sign In</h1>
+          <p className="mt-1 text-[15px] text-muted">OurDealsHub admin</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Email
-            </label>
+            <label htmlFor="email" className={labelClass}>Email</label>
             <input
+              id="email"
               type="email"
               required
-              autoComplete="email"
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 transition"
+              className={`${inputClass} mt-1.5`}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Password
-            </label>
+            <label htmlFor="password" className={labelClass}>Password</label>
             <input
+              id="password"
               type="password"
               required
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 transition"
+              className={`${inputClass} mt-1.5`}
             />
           </div>
           {error && (
-            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600">
+            <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-[15px] text-danger">
               {error}
             </p>
           )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-brand py-3 text-sm font-bold text-white shadow-sm shadow-brand/25 hover:bg-brand-dark disabled:opacity-70 transition-colors"
-          >
-            {loading ? "Signing in…" : "Sign in"}
+          <button type="submit" disabled={loading} className={`${primaryButtonClass} w-full`}>
+            {loading ? "Signing In…" : "Sign In"}
           </button>
         </form>
+        <p className="mt-5 text-center text-[13px] text-muted">
+          Forgot your password? Ask a Super Admin to reset it.
+        </p>
       </div>
     </div>
   );

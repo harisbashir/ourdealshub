@@ -79,16 +79,16 @@ export default async function ProductAnalyticsPage({
 
   return (
     <div className="max-w-3xl space-y-5">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
         <Link href="/admin/analytics" className="hover:text-brand">
           Analytics
         </Link>
         <span>/</span>
-        <span className="text-stone-700">Product</span>
+        <span className="text-muted">Product</span>
       </div>
 
       <header className="flex gap-4 items-start">
-        <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-stone-100 bg-stone-50">
+        <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-card-muted">
           <Image
             src={product.imageUrl}
             alt=""
@@ -99,10 +99,10 @@ export default async function ProductAnalyticsPage({
           />
         </span>
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-gray-900 line-clamp-2">
+          <h1 className="text-xl font-bold text-foreground line-clamp-2">
             {product.title}
           </h1>
-          <p className="text-xs text-stone-500 mt-1">
+          <p className="text-xs text-muted-fg mt-1">
             {product.category.name} · lifetime {product.clickCount} clicks ·
             link {product.linkStatus}
           </p>
@@ -111,10 +111,10 @@ export default async function ProductAnalyticsPage({
               <Link
                 key={d}
                 href={`/admin/analytics/product/${id}?days=${d}`}
-                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                   days === d
-                    ? "bg-brand text-white"
-                    : "border border-stone-200 text-gray-600 hover:border-brand hover:text-brand"
+                    ? "bg-brand text-on-brand"
+                    : "border border-border text-muted hover:border-brand hover:text-brand"
                 }`}
               >
                 {d}d
@@ -122,7 +122,7 @@ export default async function ProductAnalyticsPage({
             ))}
             <Link
               href={`/admin/products/${id}/edit`}
-              className="rounded-full border border-brand/25 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-brand hover:bg-brand hover:text-white"
+              className="rounded-full border border-brand/25 bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand hover:bg-brand hover:text-on-brand"
             >
               Edit
             </Link>
@@ -130,18 +130,18 @@ export default async function ProductAnalyticsPage({
         </div>
       </header>
 
-      <section className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
-        <p className="text-[11px] text-stone-500">Clicks in range</p>
-        <p className="text-3xl font-bold tabular-nums text-gray-900">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <p className="text-xs text-muted-fg">Clicks in range</p>
+        <p className="text-3xl font-bold tabular-nums text-foreground">
           {totalInRange}
         </p>
       </section>
 
-      <section className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-foreground mb-3">
           Daily clicks
         </h2>
-        <div className="flex items-end gap-0.5 h-36 border-b border-l border-stone-200 pl-1">
+        <div className="flex items-end gap-0.5 h-36 border-b border-l border-border pl-1">
           {daysSeries.map((d) => (
             <div
               key={d.day}
@@ -162,22 +162,22 @@ export default async function ProductAnalyticsPage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-foreground mb-2">
           By campaign ({days}d)
         </h2>
         {byCampaignRaw.length === 0 ? (
-          <p className="text-xs text-stone-500 py-4 text-center">
+          <p className="text-xs text-muted-fg py-4 text-center">
             No clicks in this range.
           </p>
         ) : (
-          <ul className="divide-y divide-stone-50">
+          <ul className="divide-y divide-border-subtle">
             {byCampaignRaw.map((r) => (
               <li
                 key={String(r.campaign)}
                 className="flex justify-between py-2 text-xs"
               >
-                <span className="font-medium text-gray-800">
+                <span className="font-medium text-foreground">
                   {r.campaign || "direct"}
                 </span>
                 <span className="tabular-nums font-semibold">

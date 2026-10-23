@@ -37,7 +37,7 @@ export default async function AdminsPage() {
         </div>
         <Link
           href="/admin/admins/new"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark shadow-sm shadow-brand/20"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-dark shadow-sm shadow-brand/20"
         >
           <Plus className="h-4 w-4" /> Add admin
         </Link>

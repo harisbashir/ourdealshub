@@ -26,14 +26,15 @@ export function CopyDealUrlButton({
   return (
     <button
       type="button"
-      title="Copy deal page URL"
+      title="Copy page link"
+      aria-label={copied ? "Link copied" : "Copy page link"}
       onClick={onCopy}
-      className="admin-icon-btn rounded p-1.5 text-muted"
+      className="pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-card-muted hover:text-foreground"
     >
       {copied ? (
-        <Check className="h-4 w-4 text-emerald-500" />
+        <Check className="h-[18px] w-[18px] text-success" aria-hidden />
       ) : (
-        <Copy className="h-4 w-4" />
+        <Copy className="h-[18px] w-[18px]" aria-hidden />
       )}
     </button>
   );

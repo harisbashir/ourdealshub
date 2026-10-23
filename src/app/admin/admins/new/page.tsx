@@ -18,7 +18,7 @@ export default async function NewAdminPage() {
 
       <form
         action={createAdminUser}
-        className="admin-shell-static admin-orange-panel space-y-5 rounded-xl bg-card border border-brand/45 p-6 shadow-sm"
+        className="space-y-5 rounded-xl bg-card border border-brand/45 p-6 shadow-sm"
       >
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">
@@ -101,7 +101,7 @@ export default async function NewAdminPage() {
         </label>
         <button
           type="submit"
-          className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-dark"
+          className="rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark"
         >
           Create admin
         </button>

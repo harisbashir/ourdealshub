@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader, primaryButtonClass, secondaryButtonClass } from "@/components/admin/ui";
 import { Suspense } from "react";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -103,59 +104,55 @@ export default async function AdminProductsPage({ searchParams }: Props) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Products / Deals</h1>
-          <p className="text-sm text-muted mt-1">
-            {archived
-              ? "Archived deals — restore or permanently delete."
-              : selectedAdmin
-                ? `Showing deals added by ${selectedAdmin.name || "this admin"}`
-                : "Manage deals, track clicks, archive, or sync from Amazon."}
-            {marketplace ? ` · ${marketplace} store` : ""}
-            {" · "}
-            {total} result{total === 1 ? "" : "s"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Suspense fallback={null}>
-            <AdminProductFilter
-              admins={admins.map((a) => ({
-                id: a.id,
-                name: a.name || a.id,
-              }))}
-            />
-          </Suspense>
-          {!archived && (
-            <Link
-              href="/admin/products/new"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark shadow-sm shadow-brand/20"
-            >
-              <Plus className="h-4 w-4" /> Add deal
+      <PageHeader
+        title={archived ? "Archived Products" : "Products"}
+        description={
+          (archived
+            ? "Restore archived deals or delete them permanently."
+            : selectedAdmin
+              ? `Deals added by ${selectedAdmin.name || "this admin"}.`
+              : "Edit, share and track your deals.") +
+          (marketplace ? ` ${marketplace} store.` : "") +
+          ` ${total} ${total === 1 ? "result" : "results"}.`
+        }
+        action={
+          !archived ? (
+            <Link href="/admin/products/new" className={primaryButtonClass}>
+              <Plus className="h-4 w-4" aria-hidden /> Add Deal
             </Link>
-          )}
-        </div>
+          ) : undefined
+        }
+      />
+      <div className="mb-4">
+        <Suspense fallback={null}>
+          <AdminProductFilter
+            admins={admins.map((a) => ({
+              id: a.id,
+              name: a.name || a.id,
+            }))}
+          />
+        </Suspense>
       </div>
 
       <ProductTable products={rows} siteUrl={siteUrl} archived={archived} />
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="mt-4 flex items-center justify-center gap-3">
           {page > 1 && (
             <Link
               href={pageHref(page - 1)}
-              className="admin-edge-btn rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground"
+              className={secondaryButtonClass}
             >
               Previous
             </Link>
           )}
-          <span className="text-sm text-muted">
-            Page {page} of {totalPages}
+          <span className="text-[15px] text-muted tabular-nums">
+            {page} of {totalPages}
           </span>
           {page < totalPages && (
             <Link
               href={pageHref(page + 1)}
-              className="admin-edge-btn rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground"
+              className={secondaryButtonClass}
             >
               Next
             </Link>

@@ -1,77 +1,83 @@
-import { TrendingUp, Sparkles, LayoutGrid } from "lucide-react";
 import Link from "next/link";
-import { ProductCard, ProductCardData } from "./ProductCard";
+import { ChevronRight } from "lucide-react";
+import { ProductCard, type ProductCardData } from "./ProductCard";
 import { ScrollRow } from "./ScrollRow";
 
-const ICONS = {
-  trending: TrendingUp,
-  sparkles: Sparkles,
-  grid: LayoutGrid,
-} as const;
-
+/**
+ * A titled section of product cards — a swipeable row on the home page,
+ * or a responsive grid on listing pages.
+ */
 export function ProductGrid({
   title,
   subtitle,
   products,
   viewAllHref,
   layout = "grid",
-  icon = "trending",
+  headingLevel = 2,
+  emptyText = "Nothing here yet. Check back soon.",
+  priorityCount = 0,
+  headerExtra,
 }: {
   title: string;
   subtitle?: string;
   products: ProductCardData[];
   viewAllHref?: string;
   layout?: "grid" | "carousel";
-  icon?: keyof typeof ICONS;
+  headingLevel?: 1 | 2;
+  emptyText?: string;
+  /** Eager-load the first N images (above the fold) */
+  priorityCount?: number;
+  /** Rendered under the heading (e.g. subcategory chips) */
+  headerExtra?: React.ReactNode;
 }) {
-  const Icon = ICONS[icon];
+  const Heading = headingLevel === 1 ? "h1" : "h2";
 
   return (
-    <section className="site-container pt-5 sm:pt-8">
-      <div className="flex items-end justify-between gap-3 mb-3 sm:mb-4">
+    <section className="site-container pt-7 sm:pt-9" aria-label={title}>
+      <div className="mb-3 flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-brand shrink-0" />
-            <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">
-              {title}
-            </h2>
-          </div>
+          <Heading
+            className={`${
+              headingLevel === 1 ? "text-[28px] sm:text-[34px]" : "text-[22px] sm:text-2xl"
+            } font-bold tracking-tight text-foreground`}
+          >
+            {title}
+          </Heading>
           {subtitle && (
-            <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted line-clamp-1">
-              {subtitle}
-            </p>
+            <p className="mt-0.5 text-[15px] text-muted">{subtitle}</p>
           )}
         </div>
-        {viewAllHref && (
+        {viewAllHref && products.length > 0 && (
           <Link
             href={viewAllHref}
-            className="text-xs sm:text-sm font-semibold text-brand hover:underline shrink-0"
+            className="-mr-2 inline-flex h-11 shrink-0 items-center gap-0.5 rounded-full px-2 text-[15px] font-semibold text-brand hover:bg-brand-soft"
           >
-            See more →
+            See All
+            <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
         )}
       </div>
 
+      {headerExtra && <div className="mb-4">{headerExtra}</div>}
+
       {products.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border bg-card py-10 text-center text-muted text-sm">
-          {title === "Just Added"
-            ? "No deals added today yet."
-            : "No deals found."}
+        <p className="rounded-2xl bg-card px-6 py-12 text-center text-[15px] text-muted ring-1 ring-border-subtle">
+          {emptyText}
         </p>
       ) : layout === "carousel" ? (
-        <ScrollRow itemClassName="w-[min(44vw,10.5rem)] sm:w-[178px] md:w-[186px] lg:w-[194px]">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+        <ScrollRow label={title} itemClassName="w-[44vw] max-w-[13rem] sm:w-[12.5rem]">
+          {products.map((p, i) => (
+            <ProductCard key={p.id} product={p} priority={i < priorityCount} />
           ))}
         </ScrollRow>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-2.5 sm:gap-3 items-stretch">
-          {products.map((p) => (
-            <div key={p.id} className="h-full min-h-0 flex flex-col">
-              <ProductCard product={p} />
-            </div>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+          {products.map((p, i) => (
+            <li key={p.id} className="flex">
+              <ProductCard product={p} priority={i < priorityCount} />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </section>
   );

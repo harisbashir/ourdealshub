@@ -20,7 +20,6 @@ import {
   restoreProduct,
   refreshProductFromAmazon,
 } from "@/lib/admin-actions";
-import { AdminHScroll } from "@/components/admin/AdminHScroll";
 
 export type AdminProductRow = {
   id: string;
@@ -109,13 +108,13 @@ export function ProductTable({
   return (
     <div className="space-y-3">
       {!archived && draftIds.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 shadow-sm admin-shell-static">
-          <label className="inline-flex items-center gap-2 text-xs font-medium text-foreground">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-border-subtle">
+          <label className="inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-foreground">
             <input
               type="checkbox"
               checked={allDraftsSelected}
               onChange={toggleAllDrafts}
-              className="rounded border-border text-brand focus:ring-brand"
+              className="h-5 w-5"
             />
             Select drafts ({draftIds.length})
           </label>
@@ -123,56 +122,46 @@ export function ProductTable({
             type="button"
             disabled={pending || selected.size === 0}
             onClick={onBulkPublish}
-            className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
+            className="pressable inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-[15px] font-semibold text-on-brand hover:bg-brand-dark disabled:opacity-50"
           >
             {pending
               ? "Publishing…"
-              : `Publish selected (${[...selected].filter((id) => draftIds.includes(id)).length})`}
+              : `Publish Selected (${[...selected].filter((id) => draftIds.includes(id)).length})`}
           </button>
           {bulkMsg && (
-            <span className="text-xs text-emerald-600 font-medium">{bulkMsg}</span>
+            <span role="status" className="text-[15px] font-medium text-success">{bulkMsg}</span>
           )}
         </div>
       )}
 
-      {/* Main card — no hover edge; sub-cards highlight individually */}
-      <div className="admin-shell-static rounded-xl bg-card border border-border shadow-sm overflow-hidden">
-        <AdminHScroll>
-          <div className="min-w-[720px]">
-            <div className="grid grid-cols-[auto_minmax(200px,1.4fr)_auto_auto_auto_auto_auto_auto] gap-x-2 items-center bg-card-muted text-left text-muted text-sm px-3 py-2.5 border-b border-border">
-              {!archived ? (
-                <span className="w-8" aria-hidden />
-              ) : (
-                <span className="w-0" aria-hidden />
-              )}
-              <span className="px-1 font-medium">Product</span>
-              <span className="px-1 font-medium">Copy URL</span>
-              <span className="px-1 font-medium">Status</span>
-              <span className="px-1 font-medium">Clicks</span>
-              <span className="px-1 font-medium">Added</span>
-              <span className="px-1 font-medium">By</span>
-              <span className="px-1 font-medium">Actions</span>
-            </div>
-
-            <div className="space-y-2 p-2.5">
-              {products.map((p) => (
-                <ProductSubCard
-                  key={p.id}
-                  product={p}
-                  siteUrl={siteUrl}
-                  archived={archived}
-                  selectable={!archived && !p.isPublished}
-                  selected={selected.has(p.id)}
-                  onToggle={() => toggle(p.id)}
-                />
-              ))}
-            </div>
-          </div>
-        </AdminHScroll>
+      <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] ring-1 ring-border-subtle">
+        <div className="hidden grid-cols-[2rem_minmax(0,1fr)_7.5rem_4.5rem_6.5rem_auto] items-center gap-x-3 border-b border-border-subtle bg-card-muted px-4 py-2.5 text-[13px] font-medium text-muted md:grid">
+          <span aria-hidden />
+          <span>Product</span>
+          <span>Status</span>
+          <span className="text-right">Clicks</span>
+          <span>Added</span>
+          <span className="text-right">Actions</span>
+        </div>
+        <ul className="divide-y divide-border-subtle">
+          {products.map((p) => (
+            <ProductSubCard
+              key={p.id}
+              product={p}
+              siteUrl={siteUrl}
+              archived={archived}
+              selectable={!archived && !p.isPublished}
+              selected={selected.has(p.id)}
+              onToggle={() => toggle(p.id)}
+            />
+          ))}
+        </ul>
 
         {products.length === 0 && (
-          <p className="p-8 text-center text-sm text-muted">
-            {archived ? "No archived products." : "No products yet."}
+          <p className="p-8 text-center text-[15px] text-muted">
+            {archived
+              ? "No archived products."
+              : "No products yet. Use Add Deal to create the first one."}
           </p>
         )}
       </div>
@@ -255,182 +244,125 @@ function ProductSubCard({
     });
   }
 
-  return (
-    <article className="admin-deal-card grid grid-cols-[auto_minmax(200px,1.4fr)_auto_auto_auto_auto_auto_auto] gap-x-2 items-start rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
-      {!archived ? (
-        <div className="w-8 pt-4">
-          {selectable ? (
-            <input
-              type="checkbox"
-              checked={!!selected}
-              onChange={onToggle}
-              className="rounded border-border text-brand focus:ring-brand"
-              aria-label={`Select ${p.title}`}
-            />
-          ) : null}
-        </div>
-      ) : (
-        <span className="w-0" aria-hidden />
-      )}
+  const iconBtn =
+    "pressable inline-flex h-11 w-11 items-center justify-center rounded-full text-muted hover:bg-card-muted hover:text-foreground disabled:opacity-50";
 
-      <div className="flex gap-2.5 min-w-0 px-1 items-start">
-            <span
-              className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide leading-none ${
-                p.marketplace === "UK"
-                  ? "border-sky-500/50 bg-sky-500 text-white"
-                  : "border-brand/50 bg-brand text-white"
-              }`}
-              title={
-                p.marketplace === "UK"
-                  ? "Amazon.co.uk (UK)"
-                  : "Amazon.com (US)"
-              }
-            >
-              {p.marketplace === "UK" ? "UK" : "US"}
-            </span>
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-card-muted border border-border">
-          <Image
-            src={p.imageUrl}
-            alt=""
-            fill
-            className="object-cover"
-            unoptimized
+  return (
+    <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-[2rem_minmax(0,1fr)_7.5rem_4.5rem_6.5rem_auto] md:items-center">
+      <div className="row-span-2 pt-1 md:row-span-1 md:pt-0">
+        {selectable ? (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={onToggle}
+            className="h-5 w-5"
+            aria-label={`Select ${p.title}`}
           />
+        ) : (
+          <span className="block w-5" aria-hidden />
+        )}
+      </div>
+
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="shelf relative h-14 w-14 shrink-0 overflow-hidden rounded-xl ring-1 ring-border-subtle">
+          <Image src={p.imageUrl} alt="" fill className="object-contain p-1" unoptimized />
         </div>
         <div className="min-w-0">
-          <p className="font-medium text-foreground line-clamp-2">{p.title}</p>
-          <p className="text-xs text-muted mt-0.5">{p.categoryName}</p>
+          <Link
+            href={`/admin/products/${p.id}/edit`}
+            className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground hover:underline"
+          >
+            {p.title}
+          </Link>
+          <p className="mt-0.5 text-[13px] text-muted">
+            <span title={p.marketplace === "UK" ? "Amazon.co.uk" : "Amazon.com"}>
+              {p.marketplace === "UK" ? "UK" : "US"}
+            </span>
+            {" · "}
+            {p.categoryName}
+            {p.createdByName ? ` · ${p.createdByName}` : ""}
+          </p>
           {p.linkStatus === "broken" && (
-            <p className="text-[10px] font-semibold text-red-500 mt-0.5">
-              Link flagged broken
+            <p className="mt-0.5 text-[13px] font-semibold text-danger">
+              Link flagged as broken
             </p>
           )}
           {syncMsg && (
-            <p className="text-xs text-muted-fg mt-0.5">{syncMsg}</p>
+            <p role="status" className="mt-0.5 text-[13px] text-muted">{syncMsg}</p>
           )}
         </div>
       </div>
 
-      <div className="px-1 pt-1">
-        <button
-          type="button"
-          title="Copy deal page URL"
-          onClick={copyDealUrl}
-          className="admin-edge-btn inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              Copied
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              Copy URL
-            </>
-          )}
-        </button>
-      </div>
-
-      <div className="px-1 pt-1.5 whitespace-nowrap">
+      <div className="col-start-2 flex flex-wrap items-center gap-1.5 md:col-start-auto">
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            p.isPublished
-              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-              : "bg-card-muted text-muted"
+          className={`rounded-full px-2.5 py-0.5 text-[13px] font-medium ${
+            p.isPublished ? "bg-success-soft text-success" : "bg-card-muted text-muted"
           }`}
         >
           {p.isPublished ? "Published" : "Draft"}
         </span>
         {scheduled && (
-          <span className="ml-1 rounded bg-brand-soft text-brand text-xs px-1.5 py-0.5 font-medium">
+          <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-[13px] font-medium text-brand">
             Scheduled
           </span>
         )}
         {p.isTrending && (
-          <span className="ml-1 rounded bg-red-500/15 text-red-600 text-xs px-1.5 py-0.5">
+          <span className="rounded-full bg-card-muted px-2.5 py-0.5 text-[13px] font-medium text-foreground">
             Pinned
           </span>
         )}
         {expired && (
-          <span className="ml-1 rounded bg-amber-500/15 text-amber-600 text-xs px-1.5 py-0.5">
+          <span className="rounded-full bg-warning-soft px-2.5 py-0.5 text-[13px] font-medium text-warning">
             Expired
           </span>
         )}
+        <span className="text-[13px] text-muted md:hidden">
+          · {p.clickCount} {p.clickCount === 1 ? "click" : "clicks"} ·{" "}
+          {new Date(p.createdAt).toLocaleDateString()}
+        </span>
       </div>
 
-      <div className="px-1 pt-1.5 text-muted tabular-nums">{p.clickCount}</div>
-      <div className="px-1 pt-1.5 text-muted whitespace-nowrap">
+      <div className="hidden text-right text-[15px] tabular-nums text-muted md:block">
+        {p.clickCount}
+      </div>
+      <div className="hidden text-[15px] text-muted md:block">
         {new Date(p.createdAt).toLocaleDateString()}
       </div>
-      <div className="px-1 pt-1.5 text-muted text-xs max-w-[100px] truncate">
-        {p.createdByName || "—"}
-      </div>
 
-      <div className="px-1 pt-0.5 flex items-center gap-1">
+      <div className="col-start-2 -ml-2.5 flex items-center gap-0.5 md:col-start-auto md:ml-0 md:justify-end">
         {!archived && (
           <>
-            <Link
-              href={`/admin/analytics/product/${p.id}`}
-              className="admin-icon-btn rounded p-1.5 text-muted"
-              title="Click analytics"
-            >
-              <BarChart3 className="h-4 w-4" />
+            <Link href={`/admin/products/${p.id}/edit`} className={iconBtn} aria-label={`Edit ${p.title}`} title="Edit">
+              <Pencil className="h-[18px] w-[18px]" aria-hidden />
+            </Link>
+            <button type="button" onClick={copyDealUrl} className={iconBtn} aria-label="Copy page link" title="Copy page link">
+              {copied ? <Check className="h-[18px] w-[18px] text-success" aria-hidden /> : <Copy className="h-[18px] w-[18px]" aria-hidden />}
+              <span className="sr-only" aria-live="polite">{copied ? "Copied" : ""}</span>
+            </button>
+            <Link href={`/admin/analytics/product/${p.id}`} className={iconBtn} aria-label="Click analytics" title="Click analytics">
+              <BarChart3 className="h-[18px] w-[18px]" aria-hidden />
             </Link>
             {(p.asin || p.affiliateUrl.includes("amazon.")) && (
-              <button
-                type="button"
-                title="Refresh from Amazon"
-                disabled={pending}
-                onClick={onSync}
-                className="admin-icon-btn rounded p-1.5 text-muted disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${pending ? "animate-spin" : ""}`}
-                />
+              <button type="button" disabled={pending} onClick={onSync} className={iconBtn} aria-label="Refresh from Amazon" title="Refresh from Amazon">
+                <RefreshCw className={`h-[18px] w-[18px] ${pending ? "animate-spin" : ""}`} aria-hidden />
               </button>
             )}
-            <Link
-              href={`/admin/products/${p.id}/edit`}
-              className="admin-icon-btn rounded p-1.5 text-muted"
-              title="Edit"
-            >
-              <Pencil className="h-4 w-4" />
-            </Link>
-            <button
-              type="button"
-              title="Archive"
-              disabled={pending}
-              onClick={onArchive}
-              className="admin-icon-btn admin-icon-btn--danger rounded p-1.5 text-muted"
-            >
-              <Trash2 className="h-4 w-4" />
+            <button type="button" disabled={pending} onClick={onArchive} className={`${iconBtn} hover:text-danger`} aria-label={`Archive ${p.title}`} title="Archive">
+              <Trash2 className="h-[18px] w-[18px]" aria-hidden />
             </button>
           </>
         )}
         {archived && (
           <>
-            <button
-              type="button"
-              title="Restore"
-              disabled={pending}
-              onClick={onRestore}
-              className="admin-icon-btn admin-icon-btn--ok rounded p-1.5 text-muted"
-            >
-              <ArchiveRestore className="h-4 w-4" />
+            <button type="button" disabled={pending} onClick={onRestore} className={`${iconBtn} hover:text-success`} aria-label={`Restore ${p.title}`} title="Restore">
+              <ArchiveRestore className="h-[18px] w-[18px]" aria-hidden />
             </button>
-            <button
-              type="button"
-              title="Delete forever"
-              disabled={pending}
-              onClick={onHardDelete}
-              className="admin-icon-btn admin-icon-btn--danger rounded p-1.5 text-muted"
-            >
-              <Trash2 className="h-4 w-4" />
+            <button type="button" disabled={pending} onClick={onHardDelete} className={`${iconBtn} hover:text-danger`} aria-label={`Delete ${p.title} permanently`} title="Delete permanently">
+              <Trash2 className="h-[18px] w-[18px]" aria-hidden />
             </button>
           </>
         )}
       </div>
-    </article>
+    </li>
   );
 }

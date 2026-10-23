@@ -10,61 +10,47 @@ import {
 } from "@/lib/market-preference";
 
 function isListingPath(pathname: string): boolean {
-  if (pathname === "/") return true;
-  if (pathname.startsWith("/deals/")) return true;
-  if (pathname.startsWith("/category/")) return true;
-  if (pathname === "/search") return true;
-  return false;
+  return (
+    pathname === "/" ||
+    pathname.startsWith("/deals/") ||
+    pathname.startsWith("/category/") ||
+    pathname === "/search"
+  );
 }
 
-function chipClass(active: boolean, value: string, large = false) {
-  const tone = active
-    ? value === "UK"
-      ? "border-sky-500 bg-sky-500 text-white"
-      : "border-brand bg-brand text-white"
-    : "border-border bg-card text-muted hover:border-brand hover:text-brand";
-  return `rounded-md border font-bold uppercase tracking-wide transition-colors flex items-center justify-center ${
-    large
-      ? "flex-1 py-1 text-[10px] min-h-[1.65rem]"
-      : "px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-[11px]"
-  } ${tone}`;
-}
+const OPTIONS: { value: MarketPreference; label: string; title: string }[] = [
+  { value: "", label: "All", title: "All Amazon stores" },
+  { value: "US", label: "US", title: "Amazon.com (US)" },
+  { value: "UK", label: "UK", title: "Amazon.co.uk (UK)" },
+];
 
 /**
- * Store chips — All / US / UK.
- * mobileBar: full-width equal taps under the search row.
- * Default (desktop): compact inline chips.
- * Remembers choice in localStorage so category nav keeps the same store.
+ * Store switcher (segmented control): All / US / UK.
+ * Remembered in localStorage so category and search links keep the same store.
  */
-export function MarketplaceFilter({
-  className = "",
-  mobileBar = false,
-}: {
-  className?: string;
-  mobileBar?: boolean;
-}) {
+export function MarketplaceFilter({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const urlMarket = (params.get("market") || "").toUpperCase();
-  const current =
+  const current: MarketPreference =
     urlMarket === "US" || urlMarket === "UK" ? urlMarket : "";
 
   useEffect(() => {
     if (urlMarket === "US" || urlMarket === "UK") {
       writeMarketPreference(urlMarket);
-      return;
-    }
-    if (params.has("market") && !urlMarket) {
+    } else if (params.has("market")) {
+      // market= / market=all → "All stores"
       writeMarketPreference("");
     }
   }, [urlMarket, params]);
 
   function hrefFor(value: MarketPreference) {
-    const base = isListingPath(pathname) ? pathname : "/";
-    const next = new URLSearchParams(
-      isListingPath(pathname) ? params.toString() : ""
-    );
+    const listing = isListingPath(pathname);
+    const base = listing ? pathname : "/";
+    const next = new URLSearchParams(listing ? params.toString() : "");
     next.delete("page");
+    // "All" drops the param; the click saves the preference first, so the
+    // remembered store doesn't re-apply on the next page
     if (value) next.set("market", value);
     else next.delete("market");
     if (base !== "/search") next.delete("q");
@@ -72,85 +58,32 @@ export function MarketplaceFilter({
     return qs ? `${base}?${qs}` : base;
   }
 
-  function onPick(value: MarketPreference) {
-    writeMarketPreference(value);
-  }
-
-  const allActive = !current;
-  const usActive = current === "US";
-  const ukActive = current === "UK";
-
-  if (mobileBar) {
-    return (
-      <div
-        className={`flex w-full items-center gap-1 ${className}`}
-        role="group"
-        aria-label="Filter by Amazon store"
-      >
-        <Link
-          href={hrefFor("")}
-          className={chipClass(allActive, "", true)}
-          scroll={false}
-          title="All stores"
-          onClick={() => onPick("")}
-        >
-          All
-        </Link>
-        <Link
-          href={hrefFor("US")}
-          className={chipClass(usActive, "US", true)}
-          scroll={false}
-          title="Amazon.com"
-          onClick={() => onPick("US")}
-        >
-          US
-        </Link>
-        <Link
-          href={hrefFor("UK")}
-          className={chipClass(ukActive, "UK", true)}
-          scroll={false}
-          title="Amazon.co.uk"
-          onClick={() => onPick("UK")}
-        >
-          UK
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div
-      className={`flex shrink-0 items-center gap-1 ${className}`}
       role="group"
-      aria-label="Filter by Amazon store"
+      aria-label="Amazon store"
+      className={`inline-flex shrink-0 items-center rounded-full bg-card-muted p-0.5 ring-1 ring-border-subtle ${className}`}
     >
-      <Link
-        href={hrefFor("")}
-        className={chipClass(allActive, "")}
-        scroll={false}
-        title="All stores"
-        onClick={() => onPick("")}
-      >
-        All
-      </Link>
-      <Link
-        href={hrefFor("US")}
-        className={chipClass(usActive, "US")}
-        scroll={false}
-        title="Amazon.com"
-        onClick={() => onPick("US")}
-      >
-        US
-      </Link>
-      <Link
-        href={hrefFor("UK")}
-        className={chipClass(ukActive, "UK")}
-        scroll={false}
-        title="Amazon.co.uk"
-        onClick={() => onPick("UK")}
-      >
-        UK
-      </Link>
+      {OPTIONS.map((o) => {
+        const active = current === o.value;
+        return (
+          <Link
+            key={o.label}
+            href={hrefFor(o.value)}
+            scroll={false}
+            title={o.title}
+            aria-current={active ? "true" : undefined}
+            onClick={() => writeMarketPreference(o.value)}
+            className={`pressable inline-flex h-8 min-w-11 items-center justify-center rounded-full px-2.5 text-[13px] font-semibold ${
+              active
+                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            {o.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }

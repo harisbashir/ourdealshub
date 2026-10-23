@@ -84,13 +84,13 @@ export default async function AnalyticsPage({ searchParams }: Props) {
     <div className="max-w-5xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand">
             Performance
           </p>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Click analytics
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-fg">
             Outbound Amazon clicks · bots &amp; flood spikes filtered · last{" "}
             {days} days
           </p>
@@ -100,7 +100,7 @@ export default async function AnalyticsPage({ searchParams }: Props) {
             <div
               role="tablist"
               aria-label="Date range"
-              className="inline-flex rounded-xl border border-stone-200 bg-white p-0.5 shadow-sm hover:border-brand/40 transition-colors"
+              className="inline-flex rounded-xl border border-border bg-card p-0.5 shadow-sm hover:border-brand/40 transition-colors"
             >
               {([7, 14, 30] as AnalyticsRange[]).map((d) => {
                 const active = isPreset && days === d;
@@ -112,8 +112,8 @@ export default async function AnalyticsPage({ searchParams }: Props) {
                     aria-selected={active}
                     className={`rounded-lg px-3 py-1.5 text-xs font-semibold tabular-nums transition-colors ${
                       active
-                        ? "bg-brand text-white shadow-sm shadow-brand/25"
-                        : "text-gray-600 hover:text-brand hover:bg-orange-50"
+                        ? "bg-brand text-on-brand shadow-sm shadow-brand/25"
+                        : "text-muted hover:text-brand hover:bg-brand-soft"
                     }`}
                   >
                     {d}d
@@ -123,7 +123,7 @@ export default async function AnalyticsPage({ searchParams }: Props) {
             </div>
             <a
               href={`/api/admin/export?type=analytics&days=${days}`}
-              className="inline-flex items-center rounded-full border border-brand/25 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-white transition-colors"
+              className="inline-flex items-center rounded-full border border-brand/25 bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-on-brand transition-colors"
             >
               Export CSV
             </a>
@@ -132,8 +132,8 @@ export default async function AnalyticsPage({ searchParams }: Props) {
         </div>
       </header>
 
-      <section className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden transition-all duration-200 hover:border-brand/45 hover:shadow-md hover:shadow-brand/5">
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
+      <section className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-all duration-200 hover:border-brand/45 hover:shadow-md hover:shadow-brand/5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border-subtle">
           <Kpi
             label="Total clicks"
             value={fmt(data.totalClicks)}
@@ -142,10 +142,10 @@ export default async function AnalyticsPage({ searchParams }: Props) {
               <span
                 className={`inline-flex items-center gap-0.5 font-medium ${
                   trend === "up"
-                    ? "text-emerald-600"
+                    ? "text-success"
                     : trend === "down"
-                      ? "text-red-600"
-                      : "text-stone-500"
+                      ? "text-danger"
+                      : "text-muted-fg"
                 }`}
               >
                 <TrendIcon className="h-3.5 w-3.5" strokeWidth={2.25} />
@@ -179,18 +179,18 @@ export default async function AnalyticsPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-stone-200/80 bg-white shadow-sm transition-all duration-200 hover:border-brand/45 hover:shadow-md hover:shadow-brand/5">
-        <div className="flex items-start justify-between gap-3 border-b border-stone-100 px-4 sm:px-5 py-3">
+      <section className="rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:border-brand/45 hover:shadow-md hover:shadow-brand/5">
+        <div className="flex items-start justify-between gap-3 border-b border-border-subtle px-4 sm:px-5 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900 group-hover:text-brand">
+            <h2 className="text-sm font-semibold text-foreground group-hover:text-brand">
               Clicks over time
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-fg mt-0.5">
               Daily volume · dashed line is the period average
             </p>
           </div>
           {data.totalClicks > 0 && (
-            <p className="text-[11px] font-medium text-brand/80 tabular-nums shrink-0 pt-0.5 rounded-full bg-orange-50 px-2 py-0.5">
+            <p className="text-xs font-medium text-brand/80 tabular-nums shrink-0 pt-0.5 rounded-full bg-brand-soft px-2 py-0.5">
               Max {fmt(data.maxDay)}/day
             </p>
           )}
@@ -215,7 +215,7 @@ export default async function AnalyticsPage({ searchParams }: Props) {
           footer={
             <Link
               href="/admin/products"
-              className="text-[11px] font-semibold text-brand hover:text-white hover:bg-brand rounded-full px-2.5 py-1 transition-colors border border-brand/20 hover:border-brand"
+              className="text-xs font-semibold text-brand hover:text-on-brand hover:bg-brand rounded-full px-2.5 py-1 transition-colors border border-brand/20 hover:border-brand"
             >
               All products
             </Link>
@@ -333,7 +333,7 @@ export default async function AnalyticsPage({ searchParams }: Props) {
         </Panel>
       </div>
 
-      <p className="text-[11px] text-stone-400 leading-relaxed max-w-2xl">
+      <p className="text-xs text-muted-fg leading-relaxed max-w-2xl">
         Rankings show the top {TOP_N} only; remaining volume is rolled into
         &quot;Other&quot; so cards stay readable as catalog size grows. Bots and
         per-IP floods are not recorded. IPs are never stored. Earnings still come
@@ -356,7 +356,7 @@ function Kpi({
 }) {
   return (
     <div
-      className={`px-4 py-3.5 sm:px-5 sm:py-4 transition-colors duration-200 hover:bg-orange-50/60 ${
+      className={`px-4 py-3.5 sm:px-5 sm:py-4 transition-colors duration-200 hover:bg-brand-soft ${
         accent ? "relative" : ""
       }`}
     >
@@ -366,13 +366,13 @@ function Kpi({
           aria-hidden
         />
       )}
-      <p className="text-[11px] font-medium text-stone-500 hover:text-brand">
+      <p className="text-xs font-medium text-muted-fg hover:text-brand">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900 tabular-nums">
+      <p className="mt-1 text-2xl font-bold tracking-tight text-foreground tabular-nums">
         {value}
       </p>
-      <div className="mt-1.5 text-[11px] text-stone-400">{footnote}</div>
+      <div className="mt-1.5 text-xs text-muted-fg">{footnote}</div>
     </div>
   );
 }
@@ -392,14 +392,14 @@ function Panel({
 }) {
   return (
     <section
-      className={`group rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden flex flex-col min-h-0 transition-all duration-200 hover:border-brand/50 hover:shadow-md hover:shadow-brand/10 ${className}`}
+      className={`group rounded-2xl border border-border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 transition-all duration-200 hover:border-brand/50 hover:shadow-md hover:shadow-brand/10 ${className}`}
     >
-      <div className="border-b border-stone-100 px-4 sm:px-5 py-3 flex items-start justify-between gap-2 transition-colors group-hover:border-brand/20 group-hover:bg-orange-50/40">
+      <div className="border-b border-border-subtle px-4 sm:px-5 py-3 flex items-start justify-between gap-2 transition-colors group-hover:border-brand/20 group-hover:bg-brand-soft">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-gray-900 transition-colors group-hover:text-brand">
+          <h2 className="text-sm font-semibold text-foreground transition-colors group-hover:text-brand">
             {title}
           </h2>
-          <p className="text-xs text-stone-500 mt-0.5">{subtitle}</p>
+          <p className="text-xs text-muted-fg mt-0.5">{subtitle}</p>
         </div>
         {footer}
       </div>
@@ -431,35 +431,31 @@ function ProductTable({
 }) {
   return (
     <table className="w-full text-left">
-      <thead className="sticky top-0 bg-white z-[1]">
-        <tr className="text-[10px] uppercase tracking-wide text-stone-400 border-b border-stone-100">
+      <thead className="sticky top-0 bg-card z-[1]">
+        <tr className="text-xs uppercase tracking-wide text-muted-fg border-b border-border-subtle">
           <th className="pb-2 font-semibold w-6">#</th>
           <th className="pb-2 font-semibold">Product</th>
           <th className="pb-2 font-semibold text-right">Clicks</th>
           <th className="pb-2 font-semibold text-right w-12">Share</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-stone-50">
+      <tbody className="divide-y divide-border-subtle">
         {rows.map((p, i) => (
           <tr
             key={p.id}
-            className="align-middle transition-colors hover:bg-orange-50/70"
+            className="align-middle transition-colors hover:bg-brand-soft"
           >
-            <td className="py-2 text-[11px] text-stone-400 tabular-nums group-hover:text-brand">
+            <td className="py-2 text-xs text-muted-fg tabular-nums group-hover:text-brand">
               {i + 1}
             </td>
             <td className="py-2 pr-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span
-                  className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-black uppercase ${
-                    p.marketplace === "UK"
-                      ? "bg-sky-500 text-white"
-                      : "bg-brand text-white"
-                  }`}
+                  className="shrink-0 rounded-md bg-card-muted px-1.5 py-0.5 text-xs font-semibold text-foreground ring-1 ring-border"
                 >
                   {p.marketplace === "UK" ? "UK" : "US"}
                 </span>
-                <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md bg-stone-50 border border-stone-100 transition-colors hover:border-brand/50">
+                <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md bg-card-muted border border-border-subtle transition-colors hover:border-brand/50">
                   <Image
                     src={p.imageUrl}
                     alt=""
@@ -472,35 +468,35 @@ function ProductTable({
                 <div className="min-w-0">
                   <Link
                     href={`/admin/analytics/product/${p.id}?days=${days}`}
-                    className="block text-xs font-medium text-gray-900 line-clamp-1 hover:text-brand"
+                    className="block text-xs font-medium text-foreground line-clamp-1 hover:text-brand"
                     title={p.title}
                   >
                     {p.title}
                   </Link>
-                  <p className="text-[10px] text-stone-400 truncate">
+                  <p className="text-xs text-muted-fg truncate">
                     {p.categoryName}
-                    <span className="text-stone-300"> · </span>
+                    <span className="text-muted-fg"> · </span>
                     {p.adminName}
                   </p>
                 </div>
               </div>
             </td>
-            <td className="py-2 text-right text-xs font-semibold tabular-nums text-gray-900">
+            <td className="py-2 text-right text-xs font-semibold tabular-nums text-foreground">
               {fmt(p.count)}
             </td>
-            <td className="py-2 text-right text-[10px] tabular-nums text-brand/80 font-medium">
+            <td className="py-2 text-right text-xs tabular-nums text-brand/80 font-medium">
               {sharePct(p.count, totalClicks)}%
             </td>
           </tr>
         ))}
         {otherCount > 0 && (
-          <tr className="align-middle text-stone-500 hover:bg-stone-50 transition-colors">
-            <td className="py-2 text-[11px] tabular-nums">—</td>
+          <tr className="align-middle text-muted-fg hover:bg-card-muted transition-colors">
+            <td className="py-2 text-xs tabular-nums">—</td>
             <td className="py-2 text-xs font-medium">Other products</td>
             <td className="py-2 text-right text-xs font-semibold tabular-nums">
               {fmt(otherCount)}
             </td>
-            <td className="py-2 text-right text-[10px] tabular-nums">
+            <td className="py-2 text-right text-xs tabular-nums">
               {sharePct(otherCount, totalClicks)}%
             </td>
           </tr>
@@ -533,14 +529,14 @@ function BreakdownTable({
 
   return (
     <table className="w-full text-left">
-      <thead className="sticky top-0 bg-white z-[1]">
-        <tr className="text-[10px] uppercase tracking-wide text-stone-400 border-b border-stone-100">
+      <thead className="sticky top-0 bg-card z-[1]">
+        <tr className="text-xs uppercase tracking-wide text-muted-fg border-b border-border-subtle">
           <th className="pb-2 font-semibold">Name</th>
           <th className="pb-2 font-semibold w-[30%]">Volume</th>
           <th className="pb-2 font-semibold text-right w-14">Clicks</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-stone-50">
+      <tbody className="divide-y divide-border-subtle">
         {displayRows.map((r) => {
           const share = sharePct(r.count, total);
           const width = Math.max(4, (r.count / peak) * 100);
@@ -550,8 +546,8 @@ function BreakdownTable({
               key={r.id}
               className={`transition-colors ${
                 isOther
-                  ? "text-stone-500 hover:bg-stone-50"
-                  : "hover:bg-orange-50/70"
+                  ? "text-muted-fg hover:bg-card-muted"
+                  : "hover:bg-brand-soft"
               }`}
             >
               <td
@@ -564,8 +560,8 @@ function BreakdownTable({
                     isOther
                       ? "font-medium"
                       : r.mono
-                        ? "font-mono text-[11px] text-stone-600"
-                        : "font-medium text-gray-800"
+                        ? "font-mono text-xs text-muted"
+                        : "font-medium text-foreground"
                   }`}
                   title={r.label}
                 >
@@ -574,20 +570,20 @@ function BreakdownTable({
               </td>
               <td className="py-2 pr-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full bg-orange-100/80 overflow-hidden ring-1 ring-brand/5">
+                  <div className="flex-1 h-1.5 rounded-full bg-brand-soft overflow-hidden ring-1 ring-brand/5">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        isOther ? "bg-stone-300" : "bg-brand"
+                        isOther ? "bg-border" : "bg-brand"
                       }`}
                       style={{ width: `${width}%` }}
                     />
                   </div>
-                  <span className="w-8 text-right text-[10px] tabular-nums text-brand/70 font-medium">
+                  <span className="w-8 text-right text-xs tabular-nums text-brand/70 font-medium">
                     {share}%
                   </span>
                 </div>
               </td>
-              <td className="py-2 text-right text-xs font-semibold tabular-nums text-gray-900">
+              <td className="py-2 text-right text-xs font-semibold tabular-nums text-foreground">
                 {fmt(r.count)}
               </td>
             </tr>
@@ -600,8 +596,8 @@ function BreakdownTable({
 
 function EmptyState({ message }: { message?: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-brand/25 bg-orange-50/40 px-3 py-8 text-center transition-colors hover:border-brand/45 hover:bg-orange-50/70">
-      <p className="text-xs text-stone-500">
+    <div className="rounded-xl border border-dashed border-brand/25 bg-brand-soft px-3 py-8 text-center transition-colors hover:border-brand/45 hover:bg-brand-soft">
+      <p className="text-xs text-muted-fg">
         {message || "No data in this range yet."}
       </p>
     </div>
