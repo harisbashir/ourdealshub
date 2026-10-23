@@ -1,0 +1,8 @@
+[Unit]
+Description=OurDealsHub daily cron (scheduled publish, link check, digest)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/ourdealshub/deploy/scripts/cron-daily.sh

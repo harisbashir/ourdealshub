@@ -10,7 +10,13 @@ Amazon affiliate deals site with a public storefront and a secure multi-admin pa
 - Amazon Product Advertising API 5 (server-side only)
 - Google Gemini for deal titles / descriptions
 
+> **Amazon API notice:** Amazon retired Product Advertising API 5 in 2026 (calls now
+> return 403). Automatic import / refresh needs migrating `src/lib/amazon.ts` to the
+> **Creators API**. Manual deal entry works meanwhile.
+
 ## Quick start
+
+Requires **Node.js 20+** (22 recommended).
 
 ### 1. Database (PostgreSQL)
 
@@ -38,6 +44,14 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 Admin login uses `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (after seed).
+
+### Self-hosting (Docker, single server)
+
+Postgres + app + Caddy (HTTPS) with one command. See [docs/DEPLOY.md](docs/DEPLOY.md).
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
 
 ## Admin roles
 
@@ -88,7 +102,7 @@ You need an approved Amazon Associates account with Product Advertising API acce
 | `npm run dev` | Dev server |
 | `npm run build` / `npm start` | Production |
 | `npx prisma migrate deploy` | Apply migrations |
-| `npm run db:seed` | Seed Super Admin + categories (no sample products) |
+| `npm run db:seed` | Seed Super Admin + categories (idempotent; `SEED_WIPE=1` wipes deals) |
 | `npx prisma studio` | DB GUI |
 
 ## Security notes

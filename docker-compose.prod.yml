@@ -1,0 +1,76 @@
+# Production / self-hosted stack: Postgres + migrations + Next.js + Caddy (HTTPS).
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Reads ./.env (see .env.example, "Self-hosted (Docker)" section).
+# For local dev, `npm run db:up` (docker-compose.yml) still starts Postgres only.
+
+name: ourdealshub
+
+x-app-env: &app-env
+  env_file: .env
+  environment:
+    # Inside the compose network Postgres is "db", not localhost
+    DATABASE_URL: postgresql://ourdealshub:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/ourdealshub?schema=public
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ourdealshub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ourdealshub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ourdealshub -d ourdealshub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No published port — only reachable by the app on the compose network
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?set NEXT_PUBLIC_SITE_URL in .env}
+    <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?set NEXT_PUBLIC_SITE_URL in .env}
+    <<: *app-env
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
+      CADDY_TLS: ${CADDY_TLS:-internal}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

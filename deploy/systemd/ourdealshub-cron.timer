@@ -1,0 +1,9 @@
+[Unit]
+Description=Run OurDealsHub daily cron at 13:00 UTC (same as vercel.json)
+
+[Timer]
+OnCalendar=*-*-* 13:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

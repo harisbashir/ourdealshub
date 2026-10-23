@@ -1,0 +1,22 @@
+# Reverse proxy + TLS for OurDealsHub.
+#
+# SITE_DOMAIN  e.g. ourdeals.lan (local) or ourdealshub.com (public)
+# CADDY_TLS    "internal" = Caddy's own local CA (browsers warn until you trust
+#              its root cert); an email address = real Let's Encrypt cert
+#              (needs a public domain pointing at this host on 80/443).
+
+{$SITE_DOMAIN} {
+	tls {$CADDY_TLS}
+	encode zstd gzip
+
+	reverse_proxy app:3000 {
+		# The app's rate limits / click dedupe read X-Real-IP first.
+		# Always overwrite it so clients cannot spoof their IP.
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+# Plain-HTTP requests to the bare IP: send to the canonical HTTPS origin
+:80 {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}

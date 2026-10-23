@@ -1,0 +1,8 @@
+[Unit]
+Description=OurDealsHub nightly Postgres backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/ourdealshub/deploy/scripts/backup.sh
