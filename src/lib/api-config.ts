@@ -105,13 +105,15 @@ export function isApiConfigKey(key: string): key is ApiConfigKey {
   return FIELD_BY_KEY.has(key as ApiConfigKey);
 }
 
-// Short cache so hot paths (imports, cron) don't hit the DB per call,
-// while edits from the admin panel apply within seconds.
-const CACHE_MS = 30_000;
+// Short cache so hot paths (imports, cron) don't hit the DB per call.
+// Next.js may load separate module instances for server actions and page
+// rendering, so clearing it after a save doesn't reach every instance: the
+// admin screen always reads fresh, and the TTL bounds staleness elsewhere.
+const CACHE_MS = 10_000;
 let cache: { at: number; values: Map<string, string> } | null = null;
 
-async function loadDbValues(): Promise<Map<string, string>> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache.values;
+async function loadDbValues(fresh = false): Promise<Map<string, string>> {
+  if (!fresh && cache && Date.now() - cache.at < CACHE_MS) return cache.values;
   const values = new Map<string, string>();
   try {
     const rows = await prisma.apiCredential.findMany();
@@ -148,9 +150,10 @@ function usable(key: ApiConfigKey, value: string | undefined): value is string {
 }
 
 export async function resolveApiConfig(
-  key: ApiConfigKey
+  key: ApiConfigKey,
+  opts?: { fresh?: boolean }
 ): Promise<{ value: string; source: ApiConfigSource }> {
-  const db = await loadDbValues();
+  const db = await loadDbValues(opts?.fresh);
   const fromDb = db.get(key)?.trim();
   if (usable(key, fromDb)) return { value: fromDb, source: "database" };
   const fromEnv = process.env[key]?.trim();
@@ -173,6 +176,7 @@ export async function describeApiConfig(): Promise<
   }[]
 > {
   const out = [];
+  await loadDbValues(true); // the admin screen must reflect a save immediately
   for (const field of API_CONFIG_FIELDS) {
     const { value, source } = await resolveApiConfig(field.key);
     const display = !value

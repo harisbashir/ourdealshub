@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/admin-auth";
 import {
   API_CONFIG_FIELDS,
+  resolveApiConfig,
   setApiConfig,
   type ApiConfigKey,
 } from "@/lib/api-config";
@@ -42,6 +43,11 @@ export async function saveApiKeys(
     }
     if (/\s/.test(value) && field.secret) {
       return { ok: false, message: `${field.label} can't contain spaces.` };
+    }
+    // Don't store an unchanged dropdown value: it would freeze today's default
+    if (!field.secret) {
+      const current = await resolveApiConfig(field.key, { fresh: true });
+      if (current.value === value && current.source !== "database") continue;
     }
     await setApiConfig(field.key as ApiConfigKey, value, admin.id);
     if (value) changed.push(field.label);
