@@ -36,19 +36,34 @@ Self-hosted production: `docker-compose.prod.yml` + `docs/DEPLOY.md`.
 - `src/lib/`: all server logic. Key modules:
   - `import-product.ts`: Amazon → Gemini → save/publish pipeline (server actions)
   - `admin-actions.ts`: product/category/admin CRUD server actions
-  - `amazon.ts`: Amazon API client (**PA-API 5, retired by Amazon in 2026, see below**)
-  - `gemini.ts`: Gemini REST call; output must be JSON `{title, description}`
+  - `amazon.ts`: Amazon **Creators API** client (OAuth2 token cache, GetItems,
+    batch refresh). PA-API 5 was retired by Amazon in 2026
+  - `amazon-sync.ts`: daily Creators API refresh (24h caching limit, removes
+    unavailable items with a two-strike rule)
+  - `api-config.ts`: API keys managed in Admin → Settings (`ApiCredential`
+    table, sealed with secret-box) with env fallback. Read keys via
+    `getApiConfig()`, never `process.env` directly
+  - `gemini.ts`: Gemini REST call; JSON `{title, description}` enforced by a
+    response schema; default model in `api-config.ts`
   - `associates-claims.ts`: blocks prices / % off / coupons / "best deal" copy
   - `permissions.ts`, `admin-auth.ts`, `auth.ts`, `auth.config.ts`: authz
   - `rate-limit.ts` (in-memory) / `rate-limit-durable.ts` (Postgres `RateBucket`)
   - `secret-box.ts`: AES-GCM for social tokens, key derived from `AUTH_SECRET`
-  - `social-publish.ts`: auto-post to Facebook / Threads / Telegram
+  - `social-publish.ts`: auto-post to Facebook / Threads / Telegram (link
+    posts only, never upload Amazon images)
+  - `theme.ts` + `globals.css`: accent presets (`data-accent`), semantic tokens
+  - `form-state.ts` / `form-actions.ts` + `components/admin/ActionForm.tsx`:
+    admin forms return validation errors inline (thrown messages are hidden
+    in production)
+  - `saved.ts`, `market-preference.ts`: device-local stores (useSyncExternalStore)
   - `link-check.ts`: affiliate link health (used by daily cron)
 - `src/app/api/cron/daily`: scheduled publish + link check + Telegram digest;
   `Authorization: Bearer $CRON_SECRET` only
 - `src/middleware.ts`: edge auth gate for `/admin` and `/api/admin`
 - `prisma/schema.prisma`, `prisma/migrations/`, `prisma/seed.ts`
 - `deploy/`: Caddyfile, systemd timers, deploy/seed/backup/cron scripts
+- `src/components/admin/ui.tsx`: shared admin primitives (cards, headers,
+  44px buttons, inputs, status badges)
 
 ## Rules that must not be broken
 
@@ -72,6 +87,21 @@ only in middleware. Staff admins see/modify only their own deals.
 
 **One deal per ASIN + marketplace** across all admins (US and UK are separate).
 
+**Paid links**: use `AFFILIATE_LINK_REL` (never `noreferrer`) and keep `/go`'s
+`strict-origin-when-cross-origin` referrer policy: Amazon must see the
+referring site (Program Policies §6(v)). Automated checks must never request a
+tagged Special Link (§6(s)); see `linkCheckProbeUrl()`.
+
+**Stable URLs**: don't change a product slug once it's published or has clicks,
+or a blog slug once published. Shared `/go/<slug>` and `/deal/<slug>` links
+(social posts, Telegram) must keep working.
+
+**Design system** (Apple HIG review): use the semantic Tailwind tokens
+(`bg-card`, `text-muted`, `text-on-brand` on `bg-brand`, `text-success`…), never
+raw palette colours like `gray-500` (they break dark mode and accent themes).
+Body text ≥ 15px, nothing below 12px, touch targets ≥ 44px, blur only on bars
+(`.bar-material`), product photos on `.shelf` tiles.
+
 ## Gotchas
 
 - **Build must not need a DB.** Public pages and the sitemap use
@@ -88,15 +118,11 @@ only in middleware. Staff admins see/modify only their own deals.
 - Click analytics rate limiting is in-memory (fine on one server, not on serverless).
 - The repo was created on Windows; the git repo uses `core.fileMode=false`.
   Mark scripts executable with `git update-index --chmod=+x <file>`.
-- **Amazon PA-API 5 was retired (Apr/May 2026).** Calls now return 403.
-  Importing / refreshing from Amazon won't work until `amazon.ts` is migrated to
-  the Creators API (OAuth client-credentials, lowerCamelCase fields,
-  `creatorsapi.amazon/catalog/v1`). Manual deal entry still works.
-
-## Conventions
-
-- Server-only logic in `src/lib`; mutations are server actions (`"use server"`)
-  that return result objects or throw `Error` with a user-facing message.
-- Validate external input with zod or explicit checks; trim and length-cap strings.
-- Comments explain *why* (policy, security), not what.
-- Commits: small and focused, imperative subject, body explains the reason.
+- **Amazon PA-API 5 was retired (Apr/May 2026).** The Creators API replaced
+  it; credentials (ID, secret, version 2.x/3.x) are per Associates store and
+  require recent qualifying sales. Manual deal entry works without them.
+- Gemini models get retired: `isRetiredGeminiModel()` ignores dead ones;
+  update `GEMINI_MODEL_OPTIONS` / `DEFAULT_GEMINI_MODEL` from
+  ai.google.dev/gemini-api/docs/deprecations.
+- `api-config` caches for 10s per module instance; server actions and page
+  renders may hold separate instances, so admin screens read fresh.

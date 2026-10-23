@@ -49,8 +49,11 @@ Set at least:
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Super Admin login (strong password) |
 | `CADDY_TLS` | `internal` for LAN, or an email for Let's Encrypt on a public domain |
 
-`AUTH_SECRET` also encrypts stored social-media tokens. Changing it later
-means re-entering those tokens under Admin → Automation.
+`AUTH_SECRET` also encrypts stored social-media tokens and the API keys saved
+in Admin → Settings. Changing it later means re-entering them.
+
+API keys (Gemini, Amazon Creators API) are best added in **Admin → Settings →
+API Keys** after the first sign-in; `.env` values are only a fallback.
 
 `NEXT_PUBLIC_SITE_URL` is baked in at build time. If you change it, rebuild
 (`deploy/scripts/deploy.sh`).
