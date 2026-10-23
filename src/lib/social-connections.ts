@@ -114,9 +114,13 @@ export async function verifyFacebookPage(opts: {
   try {
     const url = new URL(`https://graph.facebook.com/v21.0/${encodeURIComponent(pageId)}`);
     url.searchParams.set("fields", "id,name");
-    url.searchParams.set("access_token", accessToken);
 
-    const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+    // Token in a header, not the query string (keeps it out of URLs / logs)
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
     const data = (await res.json()) as {
       id?: string;
       name?: string;

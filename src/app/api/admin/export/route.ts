@@ -6,14 +6,9 @@ import {
   clampAnalyticsDays,
   getClickAnalytics,
 } from "@/lib/click-analytics";
+import { csvEscape } from "@/lib/csv";
 
 export const dynamic = "force-dynamic";
-
-function csvEscape(value: string | number | null | undefined): string {
-  const s = String(value ?? "");
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
 
 function csvResponse(filename: string, header: string[], rows: string[][]) {
   const body = [header.map(csvEscape).join(",")]

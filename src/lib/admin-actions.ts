@@ -21,6 +21,7 @@ import {
 import {
   getAdminTrackingId,
   MISSING_TRACKING_ID_MESSAGE,
+  trackingIdForProductUpdate,
   MISSING_UK_TRACKING_ID_MESSAGE,
 } from "@/lib/admin-tracking";
 import type { SessionAdmin } from "@/lib/permissions";
@@ -65,27 +66,6 @@ async function assertCanManageProduct(
   if (!canManageOwnedProduct(admin, product)) {
     throw new Error("You do not have permission to modify this product.");
   }
-}
-
-/** Prefer the deal owner's Associates tag so Super Admin edits don't steal commission. */
-async function trackingIdForProductUpdate(
-  admin: SessionAdmin,
-  product: {
-    createdById: string | null;
-    trackingId: string | null;
-    marketplace?: string | null;
-  }
-): Promise<string> {
-  const market = product.marketplace || "US";
-  if (product.createdById) {
-    const ownerTag = await getAdminTrackingId(product.createdById, market);
-    if (ownerTag) return ownerTag;
-  }
-  const stored = normalizeTrackingId(product.trackingId);
-  if (stored) return stored;
-  const self = await getAdminTrackingId(admin.id, market);
-  if (!self) throw new Error(MISSING_TRACKING_ID_MESSAGE);
-  return self;
 }
 
 function parseOptionalDate(value: FormDataEntryValue | null): Date | null {
@@ -209,6 +189,17 @@ export async function createProduct(formData: FormData) {
     trackingId,
     marketplace,
   });
+
+  // One live deal per ASIN + marketplace across all admins
+  const duplicate = await prisma.product.findFirst({
+    where: { asin: normalized.asin, marketplace, deletedAt: null },
+    select: { title: true },
+  });
+  if (duplicate) {
+    throw new Error(
+      `This ${marketplace} product is already on the site: ${duplicate.title}`
+    );
+  }
 
   const slug = await uniqueProductSlug(data.title);
 

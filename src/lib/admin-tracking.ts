@@ -58,3 +58,28 @@ export async function requireAdminTrackingId(
   }
   return tag;
 }
+
+/**
+ * Tracking ID to use when updating an existing deal.
+ * Prefer the deal owner's Associates tag so a Super Admin edit never moves
+ * the commission to the editor.
+ */
+export async function trackingIdForProductUpdate(
+  admin: { id: string },
+  product: {
+    createdById: string | null;
+    trackingId: string | null;
+    marketplace?: string | null;
+  }
+): Promise<string> {
+  const market = product.marketplace || "US";
+  if (product.createdById) {
+    const ownerTag = await getAdminTrackingId(product.createdById, market);
+    if (ownerTag) return ownerTag;
+  }
+  const stored = normalizeTrackingId(product.trackingId);
+  if (stored) return stored;
+  const self = await getAdminTrackingId(admin.id, market);
+  if (!self) throw new Error(MISSING_TRACKING_ID_MESSAGE);
+  return self;
+}

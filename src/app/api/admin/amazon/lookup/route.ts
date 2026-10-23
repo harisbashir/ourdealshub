@@ -8,10 +8,17 @@ import { rateLimitDurable } from "@/lib/rate-limit-durable";
 import {
   getAdminTrackingId,
   MISSING_TRACKING_ID_MESSAGE,
+  MISSING_UK_TRACKING_ID_MESSAGE,
 } from "@/lib/admin-tracking";
+import {
+  detectMarketplaceFromInput,
+  parseMarketplace,
+} from "@/lib/marketplace";
 
 const bodySchema = z.object({
   query: z.string().min(3).max(500),
+  /** US | UK — ignored when the URL itself names a marketplace */
+  marketplace: z.string().max(4).optional(),
 });
 
 export async function POST(req: Request) {
@@ -46,14 +53,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const trackingId = await getAdminTrackingId(admin.id);
-    if (!trackingId) {
-      return NextResponse.json(
-        { error: MISSING_TRACKING_ID_MESSAGE },
-        { status: 403 }
-      );
-    }
-
     const json = await req.json().catch(() => null);
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
@@ -63,8 +62,29 @@ export async function POST(req: Request) {
       );
     }
 
+    const marketplace =
+      detectMarketplaceFromInput(parsed.data.query) ||
+      parseMarketplace(parsed.data.marketplace);
+
     // Partner tag always from DB — never from request body
-    const product = await lookupAmazonProduct(parsed.data.query, trackingId);
+    const trackingId = await getAdminTrackingId(admin.id, marketplace);
+    if (!trackingId) {
+      return NextResponse.json(
+        {
+          error:
+            marketplace === "UK"
+              ? MISSING_UK_TRACKING_ID_MESSAGE
+              : MISSING_TRACKING_ID_MESSAGE,
+        },
+        { status: 403 }
+      );
+    }
+
+    const product = await lookupAmazonProduct(
+      parsed.data.query,
+      trackingId,
+      marketplace
+    );
     return NextResponse.json({ product });
   } catch (err) {
     const message =

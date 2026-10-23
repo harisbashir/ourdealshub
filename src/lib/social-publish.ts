@@ -117,17 +117,20 @@ async function postThreads(opts: {
   text: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    const createUrl = new URL(
-      `https://graph.threads.net/v1.0/${encodeURIComponent(opts.userId)}/threads`
+    // Params go in a form body, not the query string, so the access token
+    // never appears in URLs / proxy logs and long text can't hit URL limits.
+    const createRes = await fetch(
+      `https://graph.threads.net/v1.0/${encodeURIComponent(opts.userId)}/threads`,
+      {
+        method: "POST",
+        body: new URLSearchParams({
+          media_type: "TEXT",
+          text: opts.text,
+          access_token: opts.token,
+        }),
+        cache: "no-store",
+      }
     );
-    createUrl.searchParams.set("media_type", "TEXT");
-    createUrl.searchParams.set("text", opts.text);
-    createUrl.searchParams.set("access_token", opts.token);
-
-    const createRes = await fetch(createUrl.toString(), {
-      method: "POST",
-      cache: "no-store",
-    });
     const created = (await createRes.json()) as {
       id?: string;
       error?: { message?: string };
@@ -139,16 +142,17 @@ async function postThreads(opts: {
       };
     }
 
-    const pubUrl = new URL(
-      `https://graph.threads.net/v1.0/${encodeURIComponent(opts.userId)}/threads_publish`
+    const pubRes = await fetch(
+      `https://graph.threads.net/v1.0/${encodeURIComponent(opts.userId)}/threads_publish`,
+      {
+        method: "POST",
+        body: new URLSearchParams({
+          creation_id: created.id,
+          access_token: opts.token,
+        }),
+        cache: "no-store",
+      }
     );
-    pubUrl.searchParams.set("creation_id", created.id);
-    pubUrl.searchParams.set("access_token", opts.token);
-
-    const pubRes = await fetch(pubUrl.toString(), {
-      method: "POST",
-      cache: "no-store",
-    });
     const published = (await pubRes.json()) as {
       id?: string;
       error?: { message?: string };

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { isSafeAffiliateRedirectUrl } from "@/lib/affiliate-url";
 
+const UNSAFE_URL_DETAIL = "Not a safe Amazon URL";
+
 export type LinkCheckResult = {
   id: string;
   title: string;
@@ -15,7 +17,7 @@ export async function checkAffiliateLink(
   url: string
 ): Promise<{ status: "ok" | "broken" | "unknown"; detail: string }> {
   if (!isSafeAffiliateRedirectUrl(url)) {
-    return { status: "broken", detail: "Not a safe Amazon URL" };
+    return { status: "broken", detail: UNSAFE_URL_DETAIL };
   }
   try {
     const controller = new AbortController();
@@ -92,6 +94,20 @@ export async function checkAffiliateLink(
   }
 }
 
+/**
+ * Take a deal offline only when the break is confirmed: an unsafe URL
+ * immediately, a 404/410 only on the second consecutive broken check.
+ * Amazon often answers automated requests oddly, so one bad probe isn't enough.
+ */
+export function shouldUnpublishAfterCheck(
+  previousStatus: string | null | undefined,
+  result: { status: LinkCheckResult["status"]; detail: string }
+): boolean {
+  if (result.status !== "broken") return false;
+  if (result.detail === UNSAFE_URL_DETAIL) return true;
+  return previousStatus === "broken";
+}
+
 export async function checkProductLinks(
   limit = 25,
   opts?: { ownerAdminId?: string }
@@ -105,31 +121,31 @@ export async function checkProductLinks(
     },
     orderBy: [{ linkCheckedAt: "asc" }, { updatedAt: "desc" }],
     take: Math.min(50, Math.max(1, limit)),
-    select: { id: true, title: true, affiliateUrl: true },
+    select: { id: true, title: true, affiliateUrl: true, linkStatus: true },
   });
 
   const out: LinkCheckResult[] = [];
   for (const p of products) {
     const result = await checkAffiliateLink(p.affiliateUrl);
-    // Confirmed broken (404/410 / unsafe URL) → take offline so visitors
-    // are not sent to dead Special Links. "unknown" stays published.
+    // Confirmed broken → take offline so visitors are not sent to dead links.
+    // First failure only flags it; "unknown" stays published.
+    const unpublish = shouldUnpublishAfterCheck(p.linkStatus, result);
     await prisma.product.update({
       where: { id: p.id },
       data: {
         linkStatus: result.status,
         linkCheckedAt: new Date(),
-        ...(result.status === "broken"
-          ? { isPublished: false, scheduledAt: null }
-          : {}),
+        ...(unpublish ? { isPublished: false, scheduledAt: null } : {}),
       },
     });
     out.push({
       id: p.id,
       title: p.title,
       status: result.status,
-      detail:
-        result.status === "broken"
-          ? `${result.detail} (unpublished)`
+      detail: unpublish
+        ? `${result.detail} (unpublished)`
+        : result.status === "broken"
+          ? `${result.detail} (flagged — unpublishes if the next check fails)`
           : result.detail,
     });
   }

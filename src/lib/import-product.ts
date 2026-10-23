@@ -33,6 +33,7 @@ import {
   getAdminTrackingId,
   MISSING_TRACKING_ID_MESSAGE,
   MISSING_UK_TRACKING_ID_MESSAGE,
+  trackingIdForProductUpdate,
 } from "@/lib/admin-tracking";
 import { rateLimitDurable } from "@/lib/rate-limit-durable";
 import { associatesClaimError } from "@/lib/associates-claims";
@@ -104,21 +105,27 @@ async function uniqueProductSlug(base: string, excludeId?: string) {
   return slug;
 }
 
-async function findDuplicateForAdmin(
-  adminId: string,
+/**
+ * Existing (non-archived) deal for the same ASIN in the same marketplace,
+ * from ANY admin — a product should appear only once on the public site.
+ * US and UK listings of one ASIN are separate deals.
+ */
+async function findDuplicateDeal(
   asin: string | null,
+  marketplace: MarketplaceCode,
   affiliateUrl: string
 ) {
+  const select = { id: true, slug: true, title: true, createdById: true };
   if (asin) {
     const byAsin = await prisma.product.findFirst({
-      where: { asin, createdById: adminId, deletedAt: null },
-      select: { id: true, slug: true, title: true },
+      where: { asin, marketplace, deletedAt: null },
+      select,
     });
     if (byAsin) return byAsin;
   }
   return prisma.product.findFirst({
-    where: { affiliateUrl, createdById: adminId, deletedAt: null },
-    select: { id: true, slug: true, title: true },
+    where: { affiliateUrl, deletedAt: null },
+    select,
   });
 }
 
@@ -331,11 +338,21 @@ export async function importProductFromUrl(
     }
   }
 
-  const existing = await findDuplicateForAdmin(
-    admin.id,
+  const existing = await findDuplicateDeal(
     fetched.asin,
+    marketplace,
     fetched.detailPageUrl
   );
+
+  if (existing && !canManageOwnedProduct(admin, existing)) {
+    mark("saved", "failed");
+    return {
+      ok: false,
+      error: `This ${marketplace} product is already on the site (added by another admin).`,
+      failures: [`Existing deal: ${existing.title}`],
+      steps,
+    };
+  }
 
   const preview: ImportPreview = {
     asin: fetched.asin,
@@ -560,6 +577,30 @@ export async function publishImportedProduct(data: {
         ? await uniqueProductSlug(title, existing.id)
         : existing.slug;
 
+    // Keep the deal's owner + their Associates tag (a Super Admin update must
+    // not move the commission to the editor). Same rule as updateProduct.
+    let ownerTrackingId: string;
+    let ownerAffiliateUrl: string;
+    try {
+      ownerTrackingId = await trackingIdForProductUpdate(admin, {
+        ...existing,
+        marketplace,
+      });
+      ownerAffiliateUrl = normalizeAdminAffiliateUrl({
+        affiliateUrl: affiliateUrl,
+        asin,
+        trackingId: ownerTrackingId,
+        marketplace,
+      }).affiliateUrl;
+    } catch (e) {
+      return {
+        ok: false,
+        error:
+          e instanceof Error ? e.message : "Could not build affiliate link",
+        steps,
+      };
+    }
+
     await prisma.product.update({
       where: { id: existing.id },
       data: {
@@ -568,12 +609,12 @@ export async function publishImportedProduct(data: {
         description,
         dealPost,
         imageUrl,
-        affiliateUrl,
+        affiliateUrl: ownerAffiliateUrl,
         asin: asin && /^[A-Z0-9]{10}$/.test(asin) ? asin : existing.asin,
-        trackingId,
+        trackingId: ownerTrackingId,
         marketplace,
         categoryId,
-        createdById: admin.id,
+        createdById: existing.createdById ?? admin.id,
         isPublished: true,
         deletedAt: null,
         lastSyncedAt: new Date(),
@@ -605,7 +646,15 @@ export async function publishImportedProduct(data: {
     };
   }
 
-  const dup = await findDuplicateForAdmin(admin.id, asin, affiliateUrl);
+  const dup = await findDuplicateDeal(asin, marketplace, affiliateUrl);
+  if (dup && !canManageOwnedProduct(admin, dup)) {
+    return {
+      ok: false,
+      error: `This ${marketplace} product is already on the site (added by another admin).`,
+      failures: [`Existing deal: ${dup.title}`],
+      steps,
+    };
+  }
   if (dup) {
     return {
       ok: false,
