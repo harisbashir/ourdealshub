@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 import type { AdminRole } from "@/lib/permissions";
 import { rateLimitDurable } from "@/lib/rate-limit-durable";
+import { clientIp } from "@/lib/rate-limit";
 
 const REFRESH_MS = 15_000;
 
@@ -17,17 +18,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = String(credentials?.email || "")
           .toLowerCase()
           .trim();
         const password = String(credentials?.password || "");
         if (!email || !password) return null;
 
-        // Durable limits (shared across instances) — slow password guessing
-        const byEmail = await rateLimitDurable(`login:${email}`, 8, 15 * 60_000);
-        const global = await rateLimitDurable(`login:global`, 40, 15 * 60_000);
-        if (!byEmail.ok || !global.ok) return null;
+        // Durable limits (shared across instances) — slow password guessing.
+        // Keyed by IP (+ email) rather than site-wide or email-only, so a
+        // stranger spamming bad logins cannot lock real admins out.
+        // Requires a proxy that sets X-Real-IP (deploy/Caddyfile does).
+        const ip = clientIp(request);
+        const byEmailIp = await rateLimitDurable(
+          `login:${email}:${ip}`,
+          8,
+          15 * 60_000
+        );
+        const byIp = await rateLimitDurable(`login-ip:${ip}`, 30, 15 * 60_000);
+        if (!byEmailIp.ok || !byIp.ok) return null;
 
         const user = await prisma.adminUser.findUnique({ where: { email } });
         // Always burn similar time even if email is unknown (harder to probe)

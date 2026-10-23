@@ -225,7 +225,7 @@ async function main() {
   });
 
   console.log(
-    `Seed complete. ${categories.length} categories, 0 products (add deals via Admin).`
+    `Seed complete. ${categories.length} main categories ensured (existing deals untouched).`
   );
   console.log(
     generatedPassword

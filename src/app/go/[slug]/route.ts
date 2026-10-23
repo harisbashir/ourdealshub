@@ -90,7 +90,9 @@ export async function GET(req: Request, { params }: Props) {
 }
 
 function redirectHome(req: Request) {
-  const res = NextResponse.redirect(new URL("/", req.url), 302);
+  // Behind a reverse proxy req.url is the internal address (e.g. 0.0.0.0:3000),
+  // so redirect to the configured public origin instead.
+  const res = NextResponse.redirect(`${siteOriginFrom(req)}/`, 302);
   res.headers.set("Cache-Control", "no-store");
   return res;
 }
