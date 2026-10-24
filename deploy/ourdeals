@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Day-to-day production commands. install.sh links this to /usr/local/bin/ourdeals.
+set -euo pipefail
+SCRIPTS="$(dirname "$(readlink -f "$0")")/scripts"
+source "$SCRIPTS/lib.sh"
+
+case "${1:-help}" in
+  update)   shift; exec "$SCRIPTS/deploy.sh" "$@" ;;
+  status)
+    git --no-pager log -1 --format='Version: %h  %s  (%cr)'
+    compose ps
+    systemctl list-timers 'ourdealshub-*' --no-pager ;;
+  logs)     shift; compose logs -f --tail=100 "${@:-app}" ;;
+  restart)  compose restart app caddy ;;
+  stop)     compose stop ;;
+  start)    compose up -d && wait_for_app 120 && say "Running" ;;
+  backup)   run_backup ;;
+  backups)  ls -1t "$BACKUP_DIR"/ourdealshub-*.sql.gz 2>/dev/null || echo "No backups yet." ;;
+  restore)  shift; exec "$SCRIPTS/restore.sh" "$@" ;;
+  cron)     exec "$SCRIPTS/cron-daily.sh" ;;
+  seed)     exec "$SCRIPTS/seed.sh" ;;
+  cert)
+    compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+    say "Wrote $ROOT/caddy-root.crt. Import it as a trusted root CA on your devices." ;;
+  help|*)
+    cat <<'EOF'
+ourdeals <command>
+
+  update      Pull the latest version, back up, rebuild, restart (--force to rebuild anyway)
+  status      Version, containers and timers
+  logs [svc]  Follow logs (app by default; also caddy, db, migrate)
+  restart     Restart the app and web server
+  start/stop  Start or stop the whole stack
+  backup      Back up the database now
+  backups     List backups
+  restore F   Restore backup file F (replaces current data)
+  cron        Run the daily job now (scheduled publish, link check, Amazon refresh)
+  seed        Reset the Super Admin password to ADMIN_PASSWORD in .env
+  cert        Export the internal HTTPS root certificate (LAN installs)
+EOF
+    ;;
+esac

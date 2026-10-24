@@ -29,7 +29,9 @@ npm run build            # must succeed WITHOUT a database (see below)
 **Node ≥ 20 is required** (Tailwind 4's native binary won't install on 18; npm
 silently skips it and the build fails with "Cannot find native binding").
 
-Self-hosted production: `docker-compose.prod.yml` + `docs/DEPLOY.md`.
+Self-hosted production: `docker-compose.prod.yml` + `docs/DEPLOY.md`. First
+install: `deploy/scripts/install.sh`; updates: `ourdeals update` on the server
+(`deploy/ourdeals` → backup, pull, build, restart, health check).
 
 ## Layout
 

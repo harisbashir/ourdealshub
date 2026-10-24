@@ -11,6 +11,19 @@ Runs the whole stack on one Linux host (e.g. a Proxmox VM):
 
 Host-side systemd timers call the daily cron endpoint and take nightly backups.
 
+## Quick path
+
+```bash
+git clone git@github.com:harisbashir/ourdealshub.git /opt/ourdealshub   # needs a deploy key, see README
+/opt/ourdealshub/deploy/scripts/install.sh    # first install: does steps 1–6 below
+ourdeals update                               # every update after that
+```
+
+`install.sh` is safe to re-run (it keeps an existing `.env` and doesn't
+re-seed). It also links `deploy/ourdeals` to `/usr/local/bin/ourdeals`; run
+`ourdeals help` for the commands. The sections below are the same steps done
+by hand, for reference or troubleshooting.
+
 ## 1. Host prerequisites
 
 Debian 12 / Ubuntu 24.04, 2 vCPU, 2–4 GB RAM, ~15 GB disk.
@@ -95,17 +108,31 @@ Run either job by hand: `deploy/scripts/cron-daily.sh`, `deploy/scripts/backup.s
 Backups go to `/var/backups/ourdealshub` (newest 14 kept). The backup service
 runs as root, so the directory is created automatically.
 
-Restore:
+Restore (asks for confirmation, then restarts the app):
 
 ```bash
-gunzip -c /var/backups/ourdealshub/ourdealshub-YYYYMMDD-HHMMSS.sql.gz \
-  | docker compose -f docker-compose.prod.yml exec -T db psql -U ourdealshub ourdealshub
+ourdeals backups                       # list
+ourdeals restore /var/backups/ourdealshub/ourdealshub-YYYYMMDD-HHMMSS.sql.gz
 ```
 
 ## 7. Updating
 
 ```bash
-deploy/scripts/deploy.sh      # git pull + rebuild + restart (migrations run first)
+ourdeals update               # same as deploy/scripts/deploy.sh
+```
+
+It refuses to run if tracked files were edited on the server. Then it:
+1. Backs up the database.
+2. Runs `git pull --ff-only`.
+3. Builds the new images while the old containers keep serving.
+4. Restarts. The `migrate` service applies migrations before `app` starts.
+5. Waits for the home page to return 200.
+
+On failure it prints the logs and the rollback commands:
+
+```bash
+git reset --hard <previous commit> && deploy/scripts/deploy.sh --force
+ourdeals restore /var/backups/ourdealshub/<backup taken before the update>
 ```
 
 ## Troubleshooting

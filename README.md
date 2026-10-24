@@ -1,118 +1,144 @@
 # OurDealsHub
 
-Amazon affiliate deals site with a public storefront and a secure multi-admin panel for managing deals.
+An Amazon Associates deals site: a public storefront of hand-picked products
+and a multi-admin panel for adding, writing up, publishing and sharing them.
+
+## Features
+
+**Storefront**
+- Home, Browse, categories, search, and US / UK store switching (remembered per device)
+- Product pages with a "View on Amazon" paid link, Save (kept on the device) and Share
+- Light, dark or system appearance; phone layout with a bottom tab bar; installable to the home screen
+- Blog, help page, and the disclosure, privacy and terms pages Amazon requires
+- No visitor accounts or tracking cookies
+
+**Admin panel** (`/admin`)
+- Add a deal from an Amazon URL or ASIN: details come from the Amazon
+  **Creators API**, and Gemini writes the description from an editable master prompt
+- Drafts, review, scheduled publishing, and auto-posting to Facebook, Threads and Telegram
+- Click analytics, link-health checks, CSV export
+- Roles: **Super Admin** (everything) and **Admin** (only their own deals, under their own tracking ID)
+- Super Admin settings: API keys (stored encrypted), colour theme (9 accent colours), master prompt
+- Built-in help at `/admin/help`
+
+**Amazon compliance is built in.** No prices, discounts, coupons, ratings or urgency
+claims are stored or shown. Images stay on Amazon's servers. Product data refreshes
+daily (Amazon's 24-hour limit). Generated copy is checked before saving. See
+[CLAUDE.md](CLAUDE.md) for the full rules.
 
 ## Stack
 
-- Next.js 15 (App Router) + TypeScript + Tailwind CSS
-- Prisma + **PostgreSQL**
-- Auth.js (NextAuth v5) credentials + role permissions
-- Amazon Product Advertising API 5 (server-side only)
-- Google Gemini for deal titles / descriptions
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 5 +
+PostgreSQL 16 · Auth.js v5 · Docker Compose + Caddy (automatic HTTPS) in production.
 
-> **Amazon API notice:** Amazon retired Product Advertising API 5 in 2026 (calls now
-> return 403). Automatic import / refresh needs migrating `src/lib/amazon.ts` to the
-> **Creators API**. Manual deal entry works meanwhile.
+## Production server
 
-## Quick start
+One Ubuntu 24.04 / Debian 12 server (2 vCPU and 4 GB RAM recommended) runs everything:
+Postgres, the app and Caddy, plus daily cron and nightly backups.
 
-Requires **Node.js 20+** (22 recommended).
+### First install
 
-### 1. Database (PostgreSQL)
-
-**Option A — Docker (recommended for local):**
+The repo is private, so the server needs read access. Give it a deploy key
+(run on the server):
 
 ```bash
-npm run db:up
+ssh-keygen -t ed25519 -f ~/.ssh/ourdealshub_deploy -N "" -C "ourdealshub server"
+printf 'Host github.com\n  IdentityFile ~/.ssh/ourdealshub_deploy\n  IdentitiesOnly yes\n' >> ~/.ssh/config
+cat ~/.ssh/ourdealshub_deploy.pub
 ```
 
-Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/). Starts Postgres on `localhost:5432` with user/password/db `ourdealshub`.
+Add that key on GitHub under **repo Settings → Deploy keys** (read-only), then:
 
-**Option B — Hosted Postgres** (Neon, Supabase, Railway, etc.): put the connection string in `.env` as `DATABASE_URL`.
+```bash
+sudo mkdir -p /opt/ourdealshub && sudo chown "$USER": /opt/ourdealshub
+git clone git@github.com:harisbashir/ourdealshub.git /opt/ourdealshub
+/opt/ourdealshub/deploy/scripts/install.sh
+```
 
-### 2. App
+The installer:
+- asks for the domain, admin email and certificate type
+- installs Docker if needed and generates every secret into `.env`
+- builds and starts the site and creates the Super Admin
+- turns on the daily cron and nightly backups
+- prints the admin password
+
+For a public domain, point its DNS A record at the server and open ports 80 and
+443 before running it, so Let's Encrypt can issue the certificate.
+
+### Updating
+
+Push to `main`, then on the server:
+
+```bash
+ourdeals update
+```
+
+Or from your own machine: `ssh <user>@<server> ourdeals update`.
+
+`update` does these steps in order:
+1. Backs up the database.
+2. Pulls the new code.
+3. Builds it while the old version keeps serving.
+4. Restarts, running database migrations first.
+5. Checks the site answers.
+
+If it fails, it prints the logs and the exact rollback commands.
+
+### Everyday commands
+
+| Command | What it does |
+|---------|--------------|
+| `ourdeals status` | Version, containers, timers |
+| `ourdeals logs` | Follow app logs (`ourdeals logs caddy` for the web server) |
+| `ourdeals backup` / `backups` | Back up now / list backups (`/var/backups/ourdealshub`, newest 14 kept) |
+| `ourdeals restore <file>` | Restore a backup (asks for confirmation) |
+| `ourdeals cron` | Run the daily job now |
+| `ourdeals restart` | Restart the app and web server |
+| `ourdeals cert` | Export the HTTPS root certificate (LAN installs) |
+
+Details, manual steps and troubleshooting: [docs/DEPLOY.md](docs/DEPLOY.md).
+
+### After the first sign-in
+
+1. Change the admin password.
+2. **Admin → Settings → API Keys**: add a Gemini key (from a billing-enabled
+   Google project) and your Amazon Creators API credentials (Associates Central →
+   Tools → Creators API). Press **Test** on each.
+3. **Admin → Admins**: set your Amazon tracking ID (and one per staff admin).
+
+Without API keys the site still works. You enter deals manually and write the
+descriptions yourself.
+
+## Local development
+
+Requires **Node.js 20+** (22 recommended) and Docker for the local database.
 
 ```bash
 npm install
-cp .env.example .env
-# Edit .env — set strong ADMIN_PASSWORD + AUTH_SECRET (≥32 chars)
-npx prisma migrate deploy
-npm run db:seed
-npm run dev
+cp .env.example .env        # set ADMIN_PASSWORD and AUTH_SECRET (32+ chars)
+npm run db:up               # Postgres on localhost:5432
+npm run db:migrate
+npm run db:seed             # Super Admin + categories
+npm run dev                 # http://localhost:3000
 ```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-Admin login uses `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (after seed).
-
-### Self-hosting (Docker, single server)
-
-Postgres + app + Caddy (HTTPS) with one command. See [docs/DEPLOY.md](docs/DEPLOY.md).
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-## Admin roles
-
-| Role | Access |
-|------|--------|
-| **Super Admin** | Dashboard, products, categories, manage admins, settings |
-| **Admin** | Dashboard + product/deal management (if granted) |
-
-Create more admins at **Admin → Admins → Add admin**. Passwords are bcrypt-hashed. Revoke or delete staff admins anytime. Super Admin accounts cannot be deleted by other users.
-
-## Adding deals
-
-1. Sign in → **Products → Add deal**
-2. Paste an Amazon product URL → **Add Product**
-3. Backend fetches title, description, Amazon CDN image URL, and affiliate link
-4. Gemini writes the deal post from your master prompt (Admin → Settings)
-5. With **Auto Publish ON**, the deal goes live immediately; with **OFF**, you review/edit first
-
-Prices are intentionally not stored (Associates policy / volatility). Images stay as Amazon URLs — never downloaded or rehosted.
-
-API keys (`AMAZON_*`, `GEMINI_API_KEY`) are server-only. Never put them in `NEXT_PUBLIC_*`.
-
-## Amazon API credentials (critical)
-
-Set these **only** in server `.env` (never commit real values, never use `NEXT_PUBLIC_`):
-
-```
-AMAZON_ACCESS_KEY=
-AMAZON_SECRET_KEY=
-AMAZON_PARTNER_TAG=
-AMAZON_PAAPI_HOST=webservices.amazon.com
-AMAZON_PAAPI_REGION=us-east-1
-AMAZON_MARKETPLACE=www.amazon.com
-```
-
-- Only the backend (`src/lib/amazon.ts` + `/api/admin/amazon/lookup`) talks to Amazon.
-- The browser never receives access keys or secrets.
-- Errors are sanitized and do not echo credentials.
-
-You need an approved Amazon Associates account with Product Advertising API access.
-
-## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run db:up` | Start local Postgres (Docker) |
-| `npm run db:down` | Stop local Postgres |
 | `npm run dev` | Dev server |
-| `npm run build` / `npm start` | Production |
-| `npx prisma migrate deploy` | Apply migrations |
-| `npm run db:seed` | Seed Super Admin + categories (idempotent; `SEED_WIPE=1` wipes deals) |
-| `npx prisma studio` | DB GUI |
+| `npm test` | Unit tests |
+| `npm run lint` · `npx tsc --noEmit` | Lint and type-check |
+| `npm run build` | Production build (works without a database) |
+| `npm run db:migrate:dev` | Create a migration after editing `prisma/schema.prisma` |
+| `npm run db:seed` | Seed again (idempotent; `SEED_WIPE=1` deletes deals) |
+| `npm run db:studio` | Database browser |
 
-## Security notes
+Project layout, conventions and the rules that must not be broken (Amazon
+compliance, tracking IDs, permissions, design tokens) are in [CLAUDE.md](CLAUDE.md).
 
-- Set long `AUTH_SECRET` / `NEXTAUTH_SECRET` (≥32 chars) and a strong `ADMIN_PASSWORD` before production — boot checks will refuse weak defaults in `NODE_ENV=production`.
-- Keep Amazon/Gemini keys server-only. Tracking IDs live per admin in the DB.
-- Use PostgreSQL in production (this project defaults to Postgres; do not ship with SQLite).
+## Security
 
-## Affiliate note
-
-Import real Amazon products via Admin (PA-API). Images must stay on Amazon CDN. Do not invent prices, % off, coupons, or savings claims. See `/disclosure`.
-
-Use your own Associates tagged URLs.
+- Secrets live only in the server's `.env` (never committed). API keys added in
+  Settings are encrypted with `AUTH_SECRET`, so changing it means re-entering them.
+- In production the app refuses to start with weak or missing secrets, or a
+  non-HTTPS site URL.
+- Admin sign-in is rate limited. Every server action checks permissions, not just the middleware.
