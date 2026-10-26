@@ -10,9 +10,8 @@ Hostinger documentation checked October 26, 2026:
 - [MariaDB](https://www.hostinger.com/support/1583226-which-database-management-system-is-used-at-hostinger/)
 - [Scheduled Node scripts](https://www.hostinger.com/support/how-to-run-cron-jobs-for-node-js-websites-at-hostinger/)
 
-The LAN VM tests the same application/runtime/database model. Actual hPanel
-build detection, proxy headers, filesystem layout and plan quotas still need
-verification after an account is purchased. See [VM.md](VM.md).
+For a complete fresh installation, follow [Hostinger installation](HOSTINGER.md).
+The reference below covers deployment settings, migration and maintenance.
 
 ## First deployment
 
@@ -33,7 +32,7 @@ verification after an account is purchased. See [VM.md](VM.md).
    | `NODE_ENV` | `production` |
 
    Percent-encode database credentials in the URL. Keep the existing
-   `AUTH_SECRET` when transferring a site: it decrypts stored API/social keys.
+   `AUTH_SECRET` when transferring a site: it decrypts stored API, social and mail credentials.
    `SITE_DOMAIN`, `CADDY_TLS`, and `MARIADB_PASSWORD` are Docker/VM settings and
    are not needed by the managed Node app.
 4. Install with `npm ci --include=dev`. Use build command
@@ -43,17 +42,18 @@ verification after an account is purchased. See [VM.md](VM.md).
 5. Use **`npm start`** / Next.js's standard Node start command and `.next`
    output. Let Hostinger assign the listening port (`PORT`); do not set a custom
    port or use a static export. Leave `NEXT_OUTPUT` unset.
-6. For a NEW empty site, run `npm run db:seed` once with
-   `ALLOW_PROD_SEED=1` and `SEED_WIPE=0` in the deployment environment.
+6. For a NEW empty site, initialize the administrator and categories using the
+   [one-time Node command](HOSTINGER.md#5-create-the-initial-administrator).
    If importing existing data, import it instead; **do not seed** (seeding can
    reset the Super Admin password).
 7. Sign in at `/admin`. Configure tracking IDs and API keys in the admin panel.
    Test imports manually after API credentials are provided.
 
-If hPanel uses its own fixed Next.js build command, run `prisma migrate deploy`
-with the deployment environment before bringing the new version online. Do
-not put migrations in a request handler. Keep Prisma/CLI dependencies available
-for deployment and `tsx` available for the scheduled job.
+Select `npm run build:hostinger` in the build settings so migrations run before
+the application is built. Keep build dependencies available during installation
+and `tsx` available at runtime for scheduled jobs. For SSH initialization use
+the direct Node command in the installation guide; do not assume `npm` is
+available through managed-hosting SSH.
 
 ## Daily maintenance
 
@@ -96,7 +96,7 @@ Schedule `scripts/cron-mail.mjs` every minute, using the same Node 22 `--env-fil
 pattern as the other jobs. SMTP credentials are encrypted and alerts start paused.
 Full setup and monitoring scope: [EMAIL.md](EMAIL.md).
 
-## Backups and existing VM data
+## Backups and data migration
 
 Use Hostinger's database backups/export, with an independent copy retained.
 Where `mariadb-dump` is available, `npm run db:backup` creates a private,
@@ -104,7 +104,7 @@ compressed, consistent SQL dump; `DB_DUMP_BIN=mysqldump` selects that executable
 instead. `BACKUP_DIR` must be outside publicly served folders, and defaults to
 `backups/`. It keeps 14 successful dumps by default (`BACKUP_KEEP`).
 
-The converted LAN site already uses MariaDB. To move it to Hostinger:
+To transfer an existing MariaDB installation to Hostinger:
 
 1. Pause edits/scheduled jobs for the final transfer and take a fresh MariaDB dump.
 2. Restore to the empty Hostinger DB (phpMyAdmin import or MariaDB client).
@@ -112,7 +112,7 @@ The converted LAN site already uses MariaDB. To move it to Hostinger:
 4. Change URL variables to the public domain and rebuild. Verify the admin,
    storefront, analytics, API keys and cron before changing DNS permanently.
 
-The original PostgreSQL installation is retained on the VM for rollback.
+For installations using PostgreSQL, retain a backup for rollback.
 `prisma/postgresql/` holds the original schema/migrations. Those files are an
 archive, not migrations for the new database. `scripts/transfer-data.mjs`
 exports using the original generated PostgreSQL client and imports/verifies

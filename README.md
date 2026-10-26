@@ -43,20 +43,18 @@ Node 22 is required (`.nvmrc`).
 
 ## Hosting
 
-The app targets **Hostinger Business/Unlimited managed Node.js hosting** with
-its included MariaDB database. A VPS is not required. Setup, environment
-variables, migrations, backups and scheduled jobs: [docs/DEPLOY.md](docs/DEPLOY.md).
+Deploy on managed Node.js hosting with Node 22 and a MariaDB/MySQL database.
+For Hostinger, use a plan that includes **Node.js Web Apps**; a VPS is not required.
 
-The LAN VM at `192.168.2.232` runs native Node 22 and MariaDB as a compatibility
-environment. Operations and rollback: [docs/VM.md](docs/VM.md).
-The upgrades are deployed there. Hostinger deployment and hPanel-specific behavior
-still need verification when the managed hosting account is available.
+Start with the [Hostinger installation guide](docs/HOSTINGER.md) for database
+creation, GitHub deployment, administrator setup and scheduled jobs. General
+migration, backup and update guidance is in [Deployment](docs/DEPLOY.md).
 
 **Existing PostgreSQL installations:** this version changes the active database
 provider to MariaDB. Back up and transfer data before upgrading; the MySQL
 migrations cannot be applied to a PostgreSQL database. The archived schema,
 transfer tooling and rollback instructions are documented in
-[Deployment](docs/DEPLOY.md#backups-and-existing-vm-data).
+[Deployment](docs/DEPLOY.md#backups-and-data-migration).
 
 Social setup, permissions and the publishing queue: [docs/SOCIAL.md](docs/SOCIAL.md).
 Use **Settings → Samples** to add/remove 12 clearly marked preview listings (four per store).
@@ -73,8 +71,7 @@ mail worker each minute. Alerts stay paused until you enable them.
    only when Amazon returns a current eligible offer; there is no manual override.
 2. Add Gemini credentials for generated product write-ups, or use manual entry.
 3. Connect social channels under **Automation**. Instagram and Pinterest need
-   public HTTPS access to the original share images; a `.lan` address cannot
-   serve those platforms. Samples never enter the publishing queue.
+   public HTTPS access to the original share images. Samples never enter the publishing queue.
 4. Configure email under **Settings → Email notifications**, send a test, then
    enable alerts. Gmail uses a Google App Password; personal Outlook uses
    Microsoft OAuth sign-in. Credentials are stored encrypted.
@@ -84,11 +81,11 @@ mail worker each minute. Alerts stay paused until you enable them.
 ## Scheduled jobs
 
 Managed hosting runs finite Node scripts instead of resident background workers.
-The VM schedule is installed from [deploy/managed/cron](deploy/managed/cron).
-On Hostinger, configure the equivalent jobs in hPanel with the private environment
-file, as described in [Deployment](docs/DEPLOY.md).
+Configure the jobs with the deployment environment and a private environment
+file. The [Hostinger installation guide](docs/HOSTINGER.md#7-configure-scheduled-jobs)
+includes the commands and hPanel setup steps.
 
-| Job | VM schedule (UTC) | Purpose |
+| Job | Suggested schedule (UTC) | Purpose |
 | --- | --- | --- |
 | `scripts/cron-mail.mjs` | Every minute | Activity digests, health checks and mail delivery |
 | `scripts/cron-social.mjs` | Every 5 minutes | Process queued social posts |
@@ -97,7 +94,7 @@ file, as described in [Deployment](docs/DEPLOY.md).
 | `scripts/backup-db.mjs` | Daily at 03:30 | Private compressed MariaDB backups |
 
 Email reports application activity and operations; independent monitoring is
-needed to detect a powered-off VM or failure of the database or scheduler itself.
+needed to detect a hosting outage or failure of the database or scheduler itself.
 
 ## Local development
 
@@ -133,5 +130,5 @@ authorization, stable URLs and design tokens are in [CLAUDE.md](CLAUDE.md).
 The original PostgreSQL schema/migrations are archived in `prisma/postgresql/`.
 
 Secrets remain in the deployment environment. Preserve `AUTH_SECRET` across
-migration: it encrypts API keys, social tokens and mail credentials. Production refuses weak
-secrets or a non-HTTPS site URL.
+migration: it encrypts API keys, social tokens and mail credentials. Production
+refuses weak secrets or a non-HTTPS site URL.
