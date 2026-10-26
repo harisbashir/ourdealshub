@@ -6,139 +6,132 @@ and a multi-admin panel for adding, writing up, publishing and sharing them.
 ## Features
 
 **Storefront**
-- Home, Browse, categories, search, and US / UK store switching (remembered per device)
-- Product pages with a "View on Amazon" paid link, Save (kept on the device) and Share
+
+- Home, Browse, categories, search, and US / UK / Canada store switching (remembered per device)
+- Product pages with a "Get deal on Amazon" paid link, Save (kept on the device) and Share
+- Prominent verified savings percentages, comparison basis and freshness details;
+  expired discounts disappear automatically, including in an open tab
 - Light, dark or system appearance; phone layout with a bottom tab bar; installable to the home screen
 - Blog, help page, and the disclosure, privacy and terms pages Amazon requires
 - No visitor accounts or tracking cookies
 
 **Admin panel** (`/admin`)
+
 - Add a deal from an Amazon URL or ASIN: details come from the Amazon
   **Creators API**, and Gemini writes the description from an editable master prompt
-- Drafts, review, scheduled publishing, and auto-posting to Facebook, Threads and Telegram
+- Drafts, review, scheduled publishing, and auto-posting to Facebook, Threads, Telegram, Instagram and Pinterest
 - Click analytics, link-health checks, CSV export
 - Roles: **Super Admin** (everything) and **Admin** (only their own deals, under their own tracking ID)
 - Super Admin settings: API keys (stored encrypted), colour theme (9 accent colours), master prompt
+- Separate Amazon API credentials and per-admin tracking IDs for US, UK and Canada
+- Durable social publishing queue with delivery history and explicit review of uncertain posts
+- Gmail, Outlook and custom SMTP alerts, activity digests, test messages and delivery history
+- Twelve original illustrated sample listings, clearly marked as previews
 - Built-in help at `/admin/help`
 
-**Amazon compliance is built in.** No prices, discounts, coupons, ratings or urgency
-claims are stored or shown. Images stay on Amazon's servers. Product data refreshes
-daily (Amazon's 24-hour limit). Generated copy is checked before saving. See
+**Amazon content safeguards.** Real savings badges use only verified Amazon API
+percentages, with timestamps and expiry. Manual prices, discounts, coupons,
+ratings and urgency claims remain blocked. Images stay on Amazon's servers.
+Offers refresh hourly; generated copy is checked before saving. See
+[Discounts](docs/DISCOUNTS.md) and
 [CLAUDE.md](CLAUDE.md) for the full rules.
 
 ## Stack
 
-Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 5 +
-PostgreSQL 16 · Auth.js v5 · Docker Compose + Caddy (automatic HTTPS) in production.
+Next.js 15 · React 19 · TypeScript · Tailwind 4 · Prisma 5 · MariaDB · Auth.js v5.
+Node 22 is required (`.nvmrc`).
 
-## Production server
+## Hosting
 
-One Ubuntu 24.04 / Debian 12 server (2 vCPU and 4 GB RAM recommended) runs everything:
-Postgres, the app and Caddy, plus daily cron and nightly backups.
+The app targets **Hostinger Business/Unlimited managed Node.js hosting** with
+its included MariaDB database. A VPS is not required. Setup, environment
+variables, migrations, backups and scheduled jobs: [docs/DEPLOY.md](docs/DEPLOY.md).
 
-### First install
+The LAN VM at `192.168.2.232` runs native Node 22 and MariaDB as a compatibility
+environment. Operations and rollback: [docs/VM.md](docs/VM.md).
+The upgrades are deployed there. Hostinger deployment and hPanel-specific behavior
+still need verification when the managed hosting account is available.
 
-The repo is private, so the server needs read access. Give it a deploy key
-(run on the server):
+**Existing PostgreSQL installations:** this version changes the active database
+provider to MariaDB. Back up and transfer data before upgrading; the MySQL
+migrations cannot be applied to a PostgreSQL database. The archived schema,
+transfer tooling and rollback instructions are documented in
+[Deployment](docs/DEPLOY.md#backups-and-existing-vm-data).
 
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/ourdealshub_deploy -N "" -C "ourdealshub server"
-printf 'Host github.com\n  IdentityFile ~/.ssh/ourdealshub_deploy\n  IdentitiesOnly yes\n' >> ~/.ssh/config
-cat ~/.ssh/ourdealshub_deploy.pub
-```
+Social setup, permissions and the publishing queue: [docs/SOCIAL.md](docs/SOCIAL.md).
+Use **Settings → Samples** to add/remove 12 clearly marked preview listings (four per store).
+Samples have no active affiliate links and never enter social automation.
 
-Add that key on GitHub under **repo Settings → Deploy keys** (read-only), then:
+Administrator email alerts (Gmail, Outlook and SMTP): [docs/EMAIL.md](docs/EMAIL.md).
+Configure the account under **Settings → Email notifications** and schedule the
+mail worker each minute. Alerts stay paused until you enable them.
 
-```bash
-sudo mkdir -p /opt/ourdealshub && sudo chown "$USER": /opt/ourdealshub
-git clone git@github.com:harisbashir/ourdealshub.git /opt/ourdealshub
-/opt/ourdealshub/deploy/scripts/install.sh
-```
+## Configuration after deployment
 
-The installer:
-- asks for the domain, admin email and certificate type
-- installs Docker if needed and generates every secret into `.env`
-- builds and starts the site and creates the Super Admin
-- turns on the daily cron and nightly backups
-- prints the admin password
+1. Set each admin's tracking IDs under **Admins** and save the relevant Amazon
+   Creators API credentials under **Settings → API Keys**. Real savings appear
+   only when Amazon returns a current eligible offer; there is no manual override.
+2. Add Gemini credentials for generated product write-ups, or use manual entry.
+3. Connect social channels under **Automation**. Instagram and Pinterest need
+   public HTTPS access to the original share images; a `.lan` address cannot
+   serve those platforms. Samples never enter the publishing queue.
+4. Configure email under **Settings → Email notifications**, send a test, then
+   enable alerts. Gmail uses a Google App Password; personal Outlook uses
+   Microsoft OAuth sign-in. Credentials are stored encrypted.
+5. Add real products and remove sample listings before public launch. Sample
+   savings are illustrative, and their **Preview deal** buttons stay on the site.
 
-For a public domain, point its DNS A record at the server and open ports 80 and
-443 before running it, so Let's Encrypt can issue the certificate.
+## Scheduled jobs
 
-### Updating
+Managed hosting runs finite Node scripts instead of resident background workers.
+The VM schedule is installed from [deploy/managed/cron](deploy/managed/cron).
+On Hostinger, configure the equivalent jobs in hPanel with the private environment
+file, as described in [Deployment](docs/DEPLOY.md).
 
-Push to `main`, then on the server:
+| Job | VM schedule (UTC) | Purpose |
+| --- | --- | --- |
+| `scripts/cron-mail.mjs` | Every minute | Activity digests, health checks and mail delivery |
+| `scripts/cron-social.mjs` | Every 5 minutes | Process queued social posts |
+| `scripts/cron-amazon.mjs` | Hourly at minute 17 | Refresh Amazon data and eligible savings |
+| `scripts/cron-daily.mjs` | Daily at 13:00 | Scheduled publishing, maintenance and retention |
+| `scripts/backup-db.mjs` | Daily at 03:30 | Private compressed MariaDB backups |
 
-```bash
-ourdeals update
-```
-
-Or from your own machine: `ssh <user>@<server> ourdeals update`.
-
-`update` does these steps in order:
-1. Backs up the database.
-2. Pulls the new code.
-3. Builds it while the old version keeps serving.
-4. Restarts, running database migrations first.
-5. Checks the site answers.
-
-If it fails, it prints the logs and the exact rollback commands.
-
-### Everyday commands
-
-| Command | What it does |
-|---------|--------------|
-| `ourdeals status` | Version, containers, timers |
-| `ourdeals logs` | Follow app logs (`ourdeals logs caddy` for the web server) |
-| `ourdeals backup` / `backups` | Back up now / list backups (`/var/backups/ourdealshub`, newest 14 kept) |
-| `ourdeals restore <file>` | Restore a backup (asks for confirmation) |
-| `ourdeals cron` | Run the daily job now |
-| `ourdeals restart` | Restart the app and web server |
-| `ourdeals cert` | Export the HTTPS root certificate (LAN installs) |
-
-Details, manual steps and troubleshooting: [docs/DEPLOY.md](docs/DEPLOY.md).
-
-### After the first sign-in
-
-1. Change the admin password.
-2. **Admin → Settings → API Keys**: add a Gemini key (from a billing-enabled
-   Google project) and your Amazon Creators API credentials (Associates Central →
-   Tools → Creators API). Press **Test** on each.
-3. **Admin → Admins**: set your Amazon tracking ID (and one per staff admin).
-
-Without API keys the site still works. You enter deals manually and write the
-descriptions yourself.
+Email reports application activity and operations; independent monitoring is
+needed to detect a powered-off VM or failure of the database or scheduler itself.
 
 ## Local development
 
-Requires **Node.js 20+** (22 recommended) and Docker for the local database.
-
 ```bash
-npm install
-cp .env.example .env        # set ADMIN_PASSWORD and AUTH_SECRET (32+ chars)
-npm run db:up               # Postgres on localhost:5432
+nvm use
+npm ci
+cp .env.example .env       # configure secrets and the mysql:// database URL
+npm run db:up              # optional MariaDB container on localhost:3306
 npm run db:migrate
-npm run db:seed             # Super Admin + categories
-npm run dev                 # http://localhost:3000
+npm run db:seed
+npm run dev
 ```
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Dev server |
+| Command | Purpose |
+| --- | --- |
 | `npm test` | Unit tests |
-| `npm run lint` · `npx tsc --noEmit` | Lint and type-check |
-| `npm run build` | Production build (works without a database) |
-| `npm run db:migrate:dev` | Create a migration after editing `prisma/schema.prisma` |
-| `npm run db:seed` | Seed again (idempotent; `SEED_WIPE=1` deletes deals) |
-| `npm run db:studio` | Database browser |
+| `npm run test:db` | MariaDB integration checks (empty database ending `_test` required) |
+| `npm run lint` | ESLint |
+| `npx tsc --noEmit` | Type checking |
+| `npm run build` | Production build, no database required |
+| `npm run build:hostinger` | Apply MariaDB migrations, then build |
+| `npm start` | Production Node server; uses platform `PORT` |
+| `npm run db:migrate:dev` | Create a migration after schema changes |
+| `npm run cron:daily` | Finite maintenance job, environment loaded from `.env` |
+| `npm run cron:amazon` | Refresh Amazon data and verified savings |
+| `npm run cron:social` | Process the social delivery queue |
+| `npm run cron:mail` | Check system health and process administrator mail |
+| `npm run db:demo` | Add the sample catalog (also available in Settings) |
+| `npm run db:backup` | Private compressed MariaDB dump |
 
-Project layout, conventions and the rules that must not be broken (Amazon
-compliance, tracking IDs, permissions, design tokens) are in [CLAUDE.md](CLAUDE.md).
+Project conventions and the rules for Amazon content, affiliate tracking,
+authorization, stable URLs and design tokens are in [CLAUDE.md](CLAUDE.md).
+The original PostgreSQL schema/migrations are archived in `prisma/postgresql/`.
 
-## Security
-
-- Secrets live only in the server's `.env` (never committed). API keys added in
-  Settings are encrypted with `AUTH_SECRET`, so changing it means re-entering them.
-- In production the app refuses to start with weak or missing secrets, or a
-  non-HTTPS site URL.
-- Admin sign-in is rate limited. Every server action checks permissions, not just the middleware.
+Secrets remain in the deployment environment. Preserve `AUTH_SECRET` across
+migration: it encrypts API keys, social tokens and mail credentials. Production refuses weak
+secrets or a non-HTTPS site URL.

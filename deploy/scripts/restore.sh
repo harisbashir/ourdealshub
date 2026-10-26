@@ -12,6 +12,6 @@ read -rp "This replaces ALL current data with $FILE. Type 'restore' to continue:
 [[ "$ok" == "restore" ]] || die "Cancelled."
 
 say "Restoring"
-sudo cat "$FILE" | gunzip | compose exec -T db psql -q -v ON_ERROR_STOP=1 -U ourdealshub ourdealshub >/dev/null
+sudo cat "$FILE" | gunzip | compose exec -T db sh -c 'MYSQL_PWD="$MARIADB_PASSWORD" mariadb -u ourdealshub ourdealshub' >/dev/null
 compose restart app
 say "Restored $FILE"

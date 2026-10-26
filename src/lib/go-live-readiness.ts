@@ -39,6 +39,7 @@ export async function getGoLiveReadiness(): Promise<{
     select: {
       amazonTrackingId: true,
       amazonTrackingIdUk: true,
+      amazonTrackingIdCa: true,
       email: true,
     },
   });
@@ -129,6 +130,12 @@ export async function getGoLiveReadiness(): Promise<{
       href: "/admin/admins",
     },
     {
+      id: "tracking-ca", label: "Super Admin Tracking ID (Canada)",
+      ok: Boolean(superAdmin?.amazonTrackingIdCa?.trim()), requiredForLaunch: false,
+      detail: superAdmin?.amazonTrackingIdCa ? "Canada tracking ID is set." : "Add your Amazon.ca Associates tag under Admins → Edit before publishing Canada deals.",
+      href: "/admin/admins",
+    },
+    {
       id: "staff-tags",
       label: "Product-capable admins have US Tracking IDs",
       ok: adminsMissingTag === 0,
@@ -171,13 +178,13 @@ export async function getGoLiveReadiness(): Promise<{
     },
     {
       id: "database",
-      label: "PostgreSQL DATABASE_URL",
-      ok: Boolean(dbUrl) && !dbUrl.startsWith("file:"),
+      label: "MariaDB DATABASE_URL",
+      ok: dbUrl.startsWith("mysql://"),
       requiredForLaunch: true,
       detail: dbUrl.startsWith("file:")
-        ? "Still on SQLite. Use Docker (`npm run db:up`) or a hosted Postgres URL."
+        ? "Still on SQLite. Use Docker (`npm run db:up`) or a hosted MariaDB URL."
         : dbUrl
-          ? "DATABASE_URL points at a non-file database (Postgres expected)."
+          ? "DATABASE_URL points at a non-file database (MariaDB expected)."
           : "DATABASE_URL is missing.",
     },
     {

@@ -14,6 +14,8 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
   "facebook",
   "threads",
   "telegram",
+  "instagram",
+  "pinterest",
 ];
 
 /** Platforms with implemented auto-post in social-publish.ts */
@@ -21,12 +23,15 @@ export const LIVE_SOCIAL_PLATFORMS: SocialPlatform[] = [
   "facebook",
   "threads",
   "telegram",
+  "instagram",
+  "pinterest",
 ];
 
 export type PublicSocialConnection = {
   platform: SocialPlatform;
   /** Has saved credentials (even if disabled) */
   configured: boolean;
+  expired: boolean;
   /** Configured AND enabled for auto-post */
   connected: boolean;
   pageId: string | null;
@@ -58,6 +63,7 @@ export async function getPublicSocialConnection(
     return {
       platform,
       configured: false,
+      expired: false,
       connected: false,
       pageId: null,
       pageName: null,
@@ -77,7 +83,8 @@ export async function getPublicSocialConnection(
   return {
     platform,
     configured: true,
-    connected: row.isActive,
+    expired: Boolean(row.tokenExpiresAt && row.tokenExpiresAt.getTime() <= Date.now()),
+    connected: row.isActive && (!row.tokenExpiresAt || row.tokenExpiresAt.getTime() > Date.now()),
     pageId: row.pageId,
     pageName: row.pageName || null,
     connectedAt: row.connectedAt.toISOString(),

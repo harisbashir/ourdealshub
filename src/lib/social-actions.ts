@@ -1,4 +1,5 @@
 "use server";
+import { createChangeNotifier } from "@/lib/system-events";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -23,6 +24,7 @@ function expiryForPlatform(platform: SocialPlatform): Date | null {
 }
 
 export async function connectFacebookPage(formData: FormData): Promise<ConnectResult> {
+  const notifyChange = createChangeNotifier("settings", "Facebook Page connected", "/admin/automation");
   await requireSuperAdmin();
 
   const pageId = String(formData.get("pageId") || "").trim();
@@ -58,6 +60,7 @@ export async function connectFacebookPage(formData: FormData): Promise<ConnectRe
     },
   });
 
+  await notifyChange();
   revalidatePath("/admin/automation");
   return { ok: true, pageName: verified.pageName };
 }
@@ -65,8 +68,10 @@ export async function connectFacebookPage(formData: FormData): Promise<ConnectRe
 export async function disconnectSocialPlatform(
   platform: SocialPlatform
 ): Promise<void> {
+  const notifyChange = createChangeNotifier("settings", "Social connection removed", "/admin/automation");
   await requireSuperAdmin();
   await prisma.socialConnection.deleteMany({ where: { platform } });
+  await notifyChange();
   revalidatePath("/admin/automation");
 }
 
@@ -75,6 +80,7 @@ export async function setSocialPlatformActive(
   platform: SocialPlatform,
   active: boolean
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const notifyChange = createChangeNotifier("settings", "Social channel publishing preference changed", "/admin/automation");
   await requireSuperAdmin();
   const row = await prisma.socialConnection.findUnique({ where: { platform } });
   if (!row) {
@@ -84,61 +90,24 @@ export async function setSocialPlatformActive(
     where: { platform },
     data: { isActive: active },
   });
+  await notifyChange();
   revalidatePath("/admin/automation");
   return { ok: true };
 }
 
-/** Re-try auto-post for recent failed (or never-posted) published deals. */
-export async function retryFailedSocialPosts(): Promise<{
-  ok: true;
-  retried: number;
-}> {
+/** Retry only confirmed failures/cancellations; uncertain writes need review. */
+export async function retryFailedSocialPosts(): Promise<{ ok: true; retried: number }> {
+  const notifyChange = createChangeNotifier("social", "Social deliveries queued for retry", "/admin/automation");
   await requireSuperAdmin();
-  const { autoPostPublishedDeal } = await import("@/lib/social-publish");
-
-  const failed = await prisma.socialPostLog.findMany({
-    where: { status: "error" },
-    orderBy: { createdAt: "desc" },
-    take: 40,
-    distinct: ["productId"],
-    select: { productId: true },
+  const active = await prisma.socialConnection.findMany({ where: { isActive: true }, select: { platform: true } });
+  const jobs = await prisma.socialDelivery.findMany({
+    where: { status: { in: ["failed", "cancelled"] }, platform: { in: active.map((c) => c.platform) }, product: { isDemo: false, isPublished: true, deletedAt: null, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
+    orderBy: { updatedAt: "desc" }, take: 50, select: { id: true },
   });
-
-  let retried = 0;
-  for (const row of failed) {
-    try {
-      await autoPostPublishedDeal(row.productId);
-      retried++;
-    } catch {
-      /* continue */
-    }
-  }
-
-  // Also post recent published deals that have never been shared anywhere
-  // (never re-share deals that already went out successfully)
-  if (retried === 0) {
-    const neverShared = await prisma.product.findMany({
-      where: {
-        deletedAt: null,
-        isPublished: true,
-        socialPosts: { none: { status: "ok" } },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-      select: { id: true },
-    });
-    for (const p of neverShared) {
-      try {
-        await autoPostPublishedDeal(p.id);
-        retried++;
-      } catch {
-        /* continue */
-      }
-    }
-  }
-
+  const result = await prisma.socialDelivery.updateMany({ where: { id: { in: jobs.map((job) => job.id) }, status: { in: ["failed", "cancelled"] } }, data: { status: "queued", lastError: null } });
+  if (result.count) await notifyChange();
   revalidatePath("/admin/automation");
-  return { ok: true, retried };
+  return { ok: true, retried: result.count };
 }
 
 /** Threads uses similar Page-linked Meta tokens later — stub save for now. */
@@ -153,6 +122,7 @@ export async function connectSocialStub(
   formData: FormData,
   platform: SocialPlatform
 ): Promise<ConnectResult> {
+  const notifyChange = createChangeNotifier("settings", "Social account connected", "/admin/automation");
   await requireSuperAdmin();
   // Only platforms the publisher can actually post to (social-publish.ts)
   if (platform !== "telegram" && platform !== "threads") {
@@ -203,6 +173,39 @@ export async function connectSocialStub(
     },
   });
 
+  await notifyChange();
   revalidatePath("/admin/automation");
   return { ok: true, pageName: verified.pageName };
+}
+
+/** Instagram Login tokens and Pinterest board tokens are verified before save. */
+export async function connectImageChannel(formData: FormData, platform: "instagram" | "pinterest"): Promise<ConnectResult> {
+  const notifyChange = createChangeNotifier("settings", "Image publishing account connected", "/admin/automation");
+  await requireSuperAdmin();
+  if (platform !== "instagram" && platform !== "pinterest") return { ok: false, error: "Unsupported channel." };
+  const pageId = String(formData.get("pageId") || "").trim();
+  const accessToken = String(formData.get("accessToken") || "").trim();
+  const expiry = String(formData.get("tokenExpiresAt") || "");
+  const tokenExpiresAt = new Date(`${expiry}T00:00:00.000Z`);
+  if (!/^\d{1,32}$/.test(pageId) || !accessToken || accessToken.length > 4000 || /\s/.test(accessToken)) return { ok: false, error: "Enter a numeric account/board ID and a valid access token." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || !Number.isFinite(tokenExpiresAt.getTime()) || tokenExpiresAt.getTime() <= Date.now()) return { ok: false, error: "Choose the actual token expiry date shown by your developer dashboard (a future date)." };
+  try {
+    const { verifyInstagram, verifyPinterest } = await import("@/lib/social-api");
+    const pageName = platform === "instagram" ? await verifyInstagram(pageId, accessToken) : await verifyPinterest(pageId, accessToken);
+    const data = { pageId, pageName, accessToken: sealSecret(accessToken), isActive: true, lastError: null, connectedAt: new Date(), tokenExpiresAt };
+    await prisma.socialConnection.upsert({ where: { platform }, create: { platform, ...data }, update: data });
+    await notifyChange();
+  revalidatePath("/admin/automation");
+    return { ok: true, pageName };
+  } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Could not verify this connection." }; }
+}
+
+/** Uncertain results require a person to check the external account first. */
+export async function resolveSocialDelivery(id: string, resolution: "published" | "retry") {
+  const notifyChange = createChangeNotifier("social", "Uncertain social delivery reviewed", "/admin/automation");
+  await requireSuperAdmin();
+  if (resolution !== "published" && resolution !== "retry") return;
+  await prisma.socialDelivery.updateMany({ where: { id, status: "uncertain" }, data: { status: resolution === "published" ? "published" : "queued", lastError: null } });
+  await notifyChange();
+  revalidatePath("/admin/automation");
 }

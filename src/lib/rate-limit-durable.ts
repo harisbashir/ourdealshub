@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit, type RateLimitResult } from "@/lib/rate-limit";
 
 /**
- * Shared rate limit across processes (Postgres).
+ * Shared rate limit across processes (MariaDB).
  * Falls back to in-memory if the DB is briefly unavailable.
  */
 export async function rateLimitDurable(

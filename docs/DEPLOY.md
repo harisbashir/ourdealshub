@@ -1,150 +1,139 @@
-# Self-hosted deployment (Docker)
+# Hostinger managed Node.js deployment
 
-Runs the whole stack on one Linux host (e.g. a Proxmox VM):
+Target: **Business/Unlimited with Node.js web apps**, Node **22**, and the
+included **MariaDB/MySQL database**. No VPS, Docker, Caddy, root access, or
+persistent background worker is required by the app.
 
-| Service   | What it does                                                      |
-|-----------|-------------------------------------------------------------------|
-| `db`      | Postgres 16, data in the `pgdata` volume, not exposed to the host  |
-| `migrate` | Runs `prisma migrate deploy` on every start, then exits            |
-| `app`     | Next.js standalone server (Node 22, non-root) on port 3000 (internal) |
-| `caddy`   | HTTPS on 80/443, reverse-proxies to `app`, sets `X-Real-IP`         |
+Hostinger documentation checked October 26, 2026:
+- [Node.js app setup](https://www.hostinger.com/support/how-to-deploy-a-nodejs-website-in-hostinger/)
+- [Limits](https://www.hostinger.com/support/hostinger-node-js-limits-for-web-and-cloud-plans/)
+- [MariaDB](https://www.hostinger.com/support/1583226-which-database-management-system-is-used-at-hostinger/)
+- [Scheduled Node scripts](https://www.hostinger.com/support/how-to-run-cron-jobs-for-node-js-websites-at-hostinger/)
 
-Host-side systemd timers call the daily cron endpoint and take nightly backups.
+The LAN VM tests the same application/runtime/database model. Actual hPanel
+build detection, proxy headers, filesystem layout and plan quotas still need
+verification after an account is purchased. See [VM.md](VM.md).
 
-## Quick path
+## First deployment
 
-```bash
-git clone git@github.com:harisbashir/ourdealshub.git /opt/ourdealshub   # needs a deploy key, see README
-/opt/ourdealshub/deploy/scripts/install.sh    # first install: does steps 1–6 below
-ourdeals update                               # every update after that
+1. In hPanel, create a MariaDB database and user. Record the exact database
+   host, port, username and database name shown by Hostinger.
+2. Add a Node.js Web App from this GitHub repository (or a source ZIP).
+   Select **Next.js**, **Node 22**, repository root.
+3. Add environment variables from `.env.example`. Set at least:
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | `mysql://USER:PASSWORD@HOST:3306/DATABASE?connection_limit=5` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://your-domain.com` |
+   | `AUTH_URL`, `NEXTAUTH_URL` | Same HTTPS origin |
+   | `AUTH_SECRET`, `NEXTAUTH_SECRET` | Same random value, at least 32 characters |
+   | `CRON_SECRET` | Random value, at least 16 characters |
+   | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Initial admin credentials; strong password |
+   | `NODE_ENV` | `production` |
+
+   Percent-encode database credentials in the URL. Keep the existing
+   `AUTH_SECRET` when transferring a site: it decrypts stored API/social keys.
+   `SITE_DOMAIN`, `CADDY_TLS`, and `MARIADB_PASSWORD` are Docker/VM settings and
+   are not needed by the managed Node app.
+4. Install with `npm ci --include=dev`. Use build command
+   **`npm run build:hostinger`**, which applies MariaDB migrations and then
+   runs the production build. It needs database access in the build environment.
+   The regular `npm run build` remains usable without a database.
+5. Use **`npm start`** / Next.js's standard Node start command and `.next`
+   output. Let Hostinger assign the listening port (`PORT`); do not set a custom
+   port or use a static export. Leave `NEXT_OUTPUT` unset.
+6. For a NEW empty site, run `npm run db:seed` once with
+   `ALLOW_PROD_SEED=1` and `SEED_WIPE=0` in the deployment environment.
+   If importing existing data, import it instead; **do not seed** (seeding can
+   reset the Super Admin password).
+7. Sign in at `/admin`. Configure tracking IDs and API keys in the admin panel.
+   Test imports manually after API credentials are provided.
+
+If hPanel uses its own fixed Next.js build command, run `prisma migrate deploy`
+with the deployment environment before bringing the new version online. Do
+not put migrations in a request handler. Keep Prisma/CLI dependencies available
+for deployment and `tsx` available for the scheduled job.
+
+## Daily maintenance
+
+The app has no always-running worker. In hPanel **Advanced → Cron Jobs**, choose
+a Node.js job at **13:00 UTC daily**. Following Hostinger's documented paths:
+
+```text
+/opt/alt/alt-nodejs22/root/bin/node --env-file=/home/USER/domains/DOMAIN/hbuilds/config/.env /home/USER/domains/DOMAIN/hbuilds/current/nodejs/scripts/cron-daily.mjs
 ```
 
-`install.sh` is safe to re-run (it keeps an existing `.env` and doesn't
-re-seed). It also links `deploy/ourdeals` to `/usr/local/bin/ourdeals`; run
-`ourdeals help` for the commands. The sections below are the same steps done
-by hand, for reference or troubleshooting.
+Replace `USER`/`DOMAIN` and confirm the actual paths after deployment. Keep the
+command within Hostinger's 255-character limit. The environment file is outside
+`public_html`, private, and never committed. hPanel cron does not inherit the
+web process's environment automatically.
 
-## 1. Host prerequisites
+This finite script runs scheduled publishing, Amazon refresh, untagged link
+checks, the configured Telegram digest, and click retention. Hostinger permits
+up to 30 minutes for cron scripts, compared with 120 seconds for a web request.
+The protected `/api/cron/daily` endpoint remains for compatibility, but use the
+script for managed hosting. Do not run both schedules.
 
-Debian 12 / Ubuntu 24.04, 2 vCPU, 2–4 GB RAM, ~15 GB disk.
+## Social publishing and sample catalog
 
-```bash
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker "$USER"   # log out/in afterwards
-sudo apt-get install -y git
-```
+Schedule `scripts/cron-social.mjs` every five minutes as a second Node.js cron job,
+using the same `--env-file` pattern as the daily job. Social delivery now runs in
+this durable queue, outside web requests. Setup and permissions for all five
+channels are in [SOCIAL.md](SOCIAL.md).
 
-## 2. Get the code
+Canada uses separate `AMAZON_CA_CREDENTIAL_ID`, `AMAZON_CA_CREDENTIAL_SECRET`,
+and `AMAZON_CA_CREDENTIAL_VERSION` settings, plus each admin's Amazon.ca tracking
+ID. Configure them under Settings → API Keys and Admins.
 
-```bash
-sudo mkdir -p /opt/ourdealshub && sudo chown "$USER" /opt/ourdealshub
-git clone https://github.com/harisbashir/ourdealshub.git /opt/ourdealshub
-cd /opt/ourdealshub
-```
+For previews, Settings → Samples adds/removes 12 labeled, non-shopping listings.
+Remove them before launching a real public catalog.
 
-The systemd units assume `/opt/ourdealshub`; edit them if you use another path.
+## Administrator email
 
-## 3. Configure `.env`
+Configure Gmail, Outlook or custom SMTP under Settings → Email notifications.
+Schedule `scripts/cron-mail.mjs` every minute, using the same Node 22 `--env-file`
+pattern as the other jobs. SMTP credentials are encrypted and alerts start paused.
+Full setup and monitoring scope: [EMAIL.md](EMAIL.md).
 
-```bash
-cp .env.example .env
-```
+## Backups and existing VM data
 
-Set at least:
+Use Hostinger's database backups/export, with an independent copy retained.
+Where `mariadb-dump` is available, `npm run db:backup` creates a private,
+compressed, consistent SQL dump; `DB_DUMP_BIN=mysqldump` selects that executable
+instead. `BACKUP_DIR` must be outside publicly served folders, and defaults to
+`backups/`. It keeps 14 successful dumps by default (`BACKUP_KEEP`).
 
-| Variable | Value |
-|----------|-------|
-| `SITE_DOMAIN` | e.g. `ourdeals.lan` |
-| `NEXT_PUBLIC_SITE_URL`, `AUTH_URL`, `NEXTAUTH_URL` | `https://<SITE_DOMAIN>` (must be https and not localhost, or the app refuses to boot) |
-| `AUTH_SECRET`, `NEXTAUTH_SECRET` | same value, `openssl rand -base64 48` |
-| `CRON_SECRET` | `openssl rand -hex 32` |
-| `POSTGRES_PASSWORD` | `openssl rand -hex 24` |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Super Admin login (strong password) |
-| `CADDY_TLS` | `internal` for LAN, or an email for Let's Encrypt on a public domain |
+The converted LAN site already uses MariaDB. To move it to Hostinger:
 
-`AUTH_SECRET` also encrypts stored social-media tokens and the API keys saved
-in Admin → Settings. Changing it later means re-entering them.
+1. Pause edits/scheduled jobs for the final transfer and take a fresh MariaDB dump.
+2. Restore to the empty Hostinger DB (phpMyAdmin import or MariaDB client).
+3. Transfer the same authentication secrets and production settings privately.
+4. Change URL variables to the public domain and rebuild. Verify the admin,
+   storefront, analytics, API keys and cron before changing DNS permanently.
 
-API keys (Gemini, Amazon Creators API) are best added in **Admin → Settings →
-API Keys** after the first sign-in; `.env` values are only a fallback.
+The original PostgreSQL installation is retained on the VM for rollback.
+`prisma/postgresql/` holds the original schema/migrations. Those files are an
+archive, not migrations for the new database. `scripts/transfer-data.mjs`
+exports using the original generated PostgreSQL client and imports/verifies
+using the new MySQL client, preserving IDs, timestamps, ownership, password
+hashes and encrypted fields. It refuses to import into nonempty tables and
+compares every scalar field. Dumps/exports contain secrets; never put them in
+the repository or serve them publicly.
 
-`NEXT_PUBLIC_SITE_URL` is baked in at build time. If you change it, rebuild
-(`deploy/scripts/deploy.sh`).
+## Updates
 
-## 4. Start it
+Use GitHub deployments after testing. Keep migrations backward-compatible:
+MariaDB schema changes are not automatically undone when code is rolled back.
+Take a database backup before deployment. Verify `/`, `/admin/login`, signed-in
+admin pages, and the scheduled job after each deployment.
 
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-deploy/scripts/seed.sh        # first time only: Super Admin + categories
-```
+## Optional Docker deployment
 
-`seed.sh` is safe to re-run: it resets the Super Admin password to
-`ADMIN_PASSWORD` and adds missing categories, but never deletes deals unless
-you run `SEED_WIPE=1 deploy/scripts/seed.sh`.
+`docker-compose.prod.yml` remains available for self-hosting. It now uses
+MariaDB 10.11 with a separate `mariadb_data` volume and `MARIADB_PASSWORD`.
+The Dockerfile explicitly requests Next's standalone output. Existing PG
+installations require a data export/import; never reuse their `pgdata` volume
+or pull this conversion and run the old installer over them.
 
-## 5. Reach it from your PC (LAN)
-
-1. Point the hostname at the VM: add `<VM-IP>  ourdeals.lan` to your hosts file
-   (Windows: `C:\Windows\System32\drivers\etc\hosts`), or add a DNS record on
-   your router / Pi-hole.
-2. With `CADDY_TLS=internal`, browsers warn until you trust Caddy's root CA:
-   ```bash
-   docker compose -f docker-compose.prod.yml cp \
-     caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
-   ```
-   Import `caddy-root.crt` into "Trusted Root Certification Authorities"
-   (Windows: double-click → Install Certificate → Local Machine).
-
-## 6. Cron + backups
-
-```bash
-sudo cp deploy/systemd/ourdealshub-*.{service,timer} /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now ourdealshub-cron.timer ourdealshub-backup.timer
-systemctl list-timers 'ourdealshub-*'
-```
-
-Run either job by hand: `deploy/scripts/cron-daily.sh`, `deploy/scripts/backup.sh`.
-Backups go to `/var/backups/ourdealshub` (newest 14 kept). The backup service
-runs as root, so the directory is created automatically.
-
-Restore (asks for confirmation, then restarts the app):
-
-```bash
-ourdeals backups                       # list
-ourdeals restore /var/backups/ourdealshub/ourdealshub-YYYYMMDD-HHMMSS.sql.gz
-```
-
-## 7. Updating
-
-```bash
-ourdeals update               # same as deploy/scripts/deploy.sh
-```
-
-It refuses to run if tracked files were edited on the server. Then it:
-1. Backs up the database.
-2. Runs `git pull --ff-only`.
-3. Builds the new images while the old containers keep serving.
-4. Restarts. The `migrate` service applies migrations before `app` starts.
-5. Waits for the home page to return 200.
-
-On failure it prints the logs and the rollback commands:
-
-```bash
-git reset --hard <previous commit> && deploy/scripts/deploy.sh --force
-ourdeals restore /var/backups/ourdealshub/<backup taken before the update>
-```
-
-## Troubleshooting
-
-```bash
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f app
-docker compose -f docker-compose.prod.yml logs migrate
-```
-
-- **App exits with "Security boot check failed"**: a production check in
-  `src/lib/security-boot.ts` failed (short secret, http/localhost site URL,
-  short `CRON_SECRET`, weak `ADMIN_PASSWORD`). The log line names it.
-- **Login redirects to the wrong host**: `AUTH_URL` / `NEXTAUTH_URL` don't
-  match the URL in the browser.
+For the hourly offer refresh and verified savings badges, see [Discounts](DISCOUNTS.md).

@@ -53,11 +53,11 @@ export function runSecurityBootChecks(): void {
   const dbUrl = process.env.DATABASE_URL?.trim() || "";
   if (isProd && dbUrl.startsWith("file:")) {
     fatals.push(
-      "[security] Production must not use SQLite (file:). Set DATABASE_URL to PostgreSQL."
+      "[security] Production must not use SQLite (file:). Set DATABASE_URL to MariaDB (mysql://)."
     );
   } else if (dbUrl.startsWith("file:")) {
     warnings.push(
-      "[security] DATABASE_URL is still SQLite. Switch to PostgreSQL (see docker-compose.yml / README)."
+      "[security] DATABASE_URL is still SQLite. Switch to MariaDB (see docker-compose.yml / README)."
     );
   }
 

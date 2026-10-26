@@ -1,0 +1,11 @@
+# /etc/cron.d/ourdealshub-managed (VM). Hostinger uses hPanel Node.js Cron Jobs.
+SHELL=/bin/bash
+PATH=/opt/node22/bin:/usr/local/bin:/usr/bin:/bin
+17 * * * * haris cd /opt/ourdealshub-managed/current && flock -n /opt/ourdealshub-managed/cron.lock timeout 900 node --env-file=/opt/ourdealshub-managed/.env scripts/cron-amazon.mjs >> /opt/ourdealshub-managed/amazon.log 2>&1
+# VM uses UTC. Lock files prevent overlapping runs.
+0 13 * * * haris cd /opt/ourdealshub-managed/current && flock -n /opt/ourdealshub-managed/cron.lock timeout 1740 node --env-file=/opt/ourdealshub-managed/.env scripts/cron-daily.mjs >> /opt/ourdealshub-managed/cron.log 2>&1
+30 3 * * * haris cd /opt/ourdealshub-managed/current && flock -n /opt/ourdealshub-managed/backup.lock node --env-file=/opt/ourdealshub-managed/.env scripts/backup-db.mjs >> /opt/ourdealshub-managed/backup.log 2>&1
+
+*/5 * * * * haris cd /opt/ourdealshub-managed/current && flock -n /opt/ourdealshub-managed/social.lock timeout 240 node --env-file=/opt/ourdealshub-managed/.env scripts/cron-social.mjs >> /opt/ourdealshub-managed/social.log 2>&1
+
+* * * * * haris cd /opt/ourdealshub-managed/current && flock -n /opt/ourdealshub-managed/mail.lock timeout 90 node --env-file=/opt/ourdealshub-managed/.env scripts/cron-mail.mjs >> /opt/ourdealshub-managed/mail.log 2>&1

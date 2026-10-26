@@ -1,4 +1,6 @@
 "use server";
+import { discountFields } from "@/lib/amazon-discounts";
+import { createChangeNotifier } from "@/lib/system-events";
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
@@ -31,8 +33,7 @@ import {
 } from "@/lib/category-resolve";
 import {
   getAdminTrackingId,
-  MISSING_TRACKING_ID_MESSAGE,
-  MISSING_UK_TRACKING_ID_MESSAGE,
+  missingTrackingIdMessage,
   trackingIdForProductUpdate,
 } from "@/lib/admin-tracking";
 import { rateLimitDurable } from "@/lib/rate-limit-durable";
@@ -137,6 +138,7 @@ export async function importProductFromUrl(
   url: string,
   marketplaceInput: string = "US"
 ): Promise<ImportResult> {
+  const notifyChange = createChangeNotifier("content", "Amazon product imported", "/admin/products");
   const steps: ImportStep[] = [
     step("url", "URL / ASIN received", "done"),
     step("asin", "ASIN identified", "pending"),
@@ -180,9 +182,7 @@ export async function importProductFromUrl(
   const trackingId = await getAdminTrackingId(admin.id, marketplace);
   if (!trackingId) {
     const msg =
-      marketplace === "UK"
-        ? MISSING_UK_TRACKING_ID_MESSAGE
-        : MISSING_TRACKING_ID_MESSAGE;
+      missingTrackingIdMessage(marketplace);
     return {
       ok: false,
       error: msg,
@@ -401,6 +401,7 @@ export async function importProductFromUrl(
       description: productDescription,
       dealPost,
       imageUrl: fetched.imageUrl,
+      ...discountFields(fetched.discount),
       affiliateUrl: fetched.detailPageUrl,
       asin: fetched.asin,
       trackingId,
@@ -416,10 +417,15 @@ export async function importProductFromUrl(
   mark("saved", "done");
   mark("published", "done");
 
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
+  await notifyChange();
   revalidatePath("/admin");
+  await notifyChange();
   revalidatePath("/admin/categories");
+  await notifyChange();
   revalidatePath(`/deal/${slug}`);
 
   after(async () => {
@@ -454,6 +460,7 @@ export async function publishImportedProduct(data: {
   existingProductId?: string | null;
   isTrending?: boolean;
 }): Promise<ImportResult> {
+  const notifyChange = createChangeNotifier("content", "Imported product published or updated", "/admin/products");
   const steps: ImportStep[] = [
     step("saved", "Product saved", "pending"),
     step("published", "Product published", "pending"),
@@ -478,9 +485,7 @@ export async function publishImportedProduct(data: {
   const trackingId = await getAdminTrackingId(admin.id, marketplace);
   if (!trackingId) {
     const msg =
-      marketplace === "UK"
-        ? MISSING_UK_TRACKING_ID_MESSAGE
-        : MISSING_TRACKING_ID_MESSAGE;
+      missingTrackingIdMessage(marketplace);
     return {
       ok: false,
       error: msg,
@@ -602,6 +607,7 @@ export async function publishImportedProduct(data: {
       };
     }
 
+    const discount = await importedDiscount(asin!, ownerTrackingId, marketplace);
     await prisma.product.update({
       where: { id: existing.id },
       data: {
@@ -610,6 +616,7 @@ export async function publishImportedProduct(data: {
         description,
         dealPost,
         imageUrl,
+        ...discountFields(discount),
         affiliateUrl: ownerAffiliateUrl,
         asin: asin && /^[A-Z0-9]{10}$/.test(asin) ? asin : existing.asin,
         trackingId: ownerTrackingId,
@@ -625,9 +632,12 @@ export async function publishImportedProduct(data: {
     });
 
     markDone(steps);
-    revalidatePath("/");
-    revalidatePath("/admin/products");
-    revalidatePath(`/deal/${slug}`);
+    await notifyChange();
+  revalidatePath("/");
+    await notifyChange();
+  revalidatePath("/admin/products");
+    await notifyChange();
+  revalidatePath(`/deal/${slug}`);
 
     after(async () => {
       try {
@@ -677,6 +687,7 @@ export async function publishImportedProduct(data: {
     };
   }
 
+  const discount = await importedDiscount(asin!, trackingId, marketplace);
   const slug = await uniqueProductSlug(title);
   const product = await prisma.product.create({
     data: {
@@ -685,6 +696,7 @@ export async function publishImportedProduct(data: {
       description,
       dealPost,
       imageUrl,
+      ...discountFields(discount),
       affiliateUrl,
       asin: asin && /^[A-Z0-9]{10}$/.test(asin) ? asin : null,
       trackingId,
@@ -699,8 +711,11 @@ export async function publishImportedProduct(data: {
   });
 
   markDone(steps);
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
+  await notifyChange();
   revalidatePath(`/deal/${slug}`);
 
   after(async () => {
@@ -726,6 +741,7 @@ function markDone(steps: ImportStep[]) {
 }
 
 export async function updateSiteSettings(formData: FormData) {
+  const notifyChange = createChangeNotifier("settings", "Publishing or writing settings updated", "/admin/settings");
   await requireSuperAdmin();
 
   // Store "" when the prompt is the built-in one (or reset), so improvements
@@ -758,7 +774,16 @@ export async function updateSiteSettings(formData: FormData) {
     },
   });
 
+  await notifyChange();
   revalidatePath("/admin/settings");
+  await notifyChange();
   revalidatePath("/admin/products/new");
+  await notifyChange();
   revalidatePath("/admin/automation");
+}
+
+async function importedDiscount(asin: string, tag: string, market: MarketplaceCode) {
+  if (!(await isAmazonConfigured(market))) return null;
+  try { return (await lookupAmazonProduct(asin, tag, market)).discount; }
+  catch { return null; } // Publishing still works when optional offer data is unavailable.
 }

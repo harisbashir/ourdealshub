@@ -21,8 +21,8 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  // Self-contained server bundle for the Docker image (see Dockerfile)
-  output: "standalone",
+  // Managed hosting runs standard Next.js. Only Docker needs a standalone bundle.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },

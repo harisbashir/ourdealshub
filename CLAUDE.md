@@ -10,12 +10,12 @@ products (ASIN/URL → Amazon API → Gemini rewrite → publish); visitors clic
 through `/go/[slug]`, which logs the click and 302s to the stored affiliate URL.
 
 Stack: Next.js 15 App Router · React 19 · TypeScript (strict) · Tailwind 4 ·
-Prisma 5 + PostgreSQL · Auth.js v5 (credentials, JWT sessions) · zod 4.
+Prisma 5 + MariaDB (Prisma mysql provider) · Auth.js v5 (credentials, JWT sessions) · zod 4.
 
 ## Commands
 
 ```bash
-npm run db:up            # local Postgres via docker-compose.yml (dev only)
+npm run db:up            # local MariaDB via docker-compose.yml (dev only)
 npm run db:migrate       # prisma migrate deploy
 npm run db:migrate:dev   # create a new migration after editing schema.prisma
 npm run db:seed          # Super Admin + categories (idempotent; SEED_WIPE=1 to wipe)
@@ -26,12 +26,17 @@ npx tsc --noEmit
 npm run build            # must succeed WITHOUT a database (see below)
 ```
 
-**Node ≥ 20 is required** (Tailwind 4's native binary won't install on 18; npm
-silently skips it and the build fails with "Cannot find native binding").
+**Node 22 is required** (`.nvmrc`). Node 18 is unsupported.
 
-Self-hosted production: `docker-compose.prod.yml` + `docs/DEPLOY.md`. First
-install: `deploy/scripts/install.sh`; updates: `ourdeals update` on the server
-(`deploy/ourdeals` → backup, pull, build, restart, health check).
+Managed production: Hostinger Business/Unlimited Node.js + MariaDB; see
+`docs/DEPLOY.md`. `npm run build:hostinger` applies MySQL migrations then builds.
+`npm run build` stays database-independent. `scripts/cron-daily.mjs` runs daily
+maintenance outside HTTP (Hostinger has a 120s web-request limit).
+The LAN VM uses native Node 22 + MariaDB, with systemd/Caddy standing in for
+platform process management/HTTPS. See `docs/VM.md` and `deploy/managed/`.
+Docker remains optional; its database uses a new `mariadb_data` volume.
+Never point MariaDB at a PostgreSQL data volume or run MySQL migrations against PG.
+Original PostgreSQL schema/migrations are archived under `prisma/postgresql/`.
 
 ## Layout
 
@@ -49,10 +54,17 @@ install: `deploy/scripts/install.sh`; updates: `ourdeals update` on the server
     response schema; default model in `api-config.ts`
   - `associates-claims.ts`: blocks prices / % off / coupons / "best deal" copy
   - `permissions.ts`, `admin-auth.ts`, `auth.ts`, `auth.config.ts`: authz
-  - `rate-limit.ts` (in-memory) / `rate-limit-durable.ts` (Postgres `RateBucket`)
+  - `rate-limit.ts` (in-memory) / `rate-limit-durable.ts` (MariaDB `RateBucket`)
   - `secret-box.ts`: AES-GCM for social tokens, key derived from `AUTH_SECRET`
-  - `social-publish.ts`: auto-post to Facebook / Threads / Telegram (link
-    posts only, never upload Amazon images)
+  - `social-publish.ts`: queue posts for Facebook / Threads / Telegram / Instagram / Pinterest;
+    `scripts/cron-social.mjs` processes finite batches outside HTTP. Instagram
+    and Pinterest use original editorial JPEGs from `/api/social-image/[slug]`,
+    never Amazon images
+  - `system-events.ts`: safe summaries after successful actions; never include
+    passwords, tokens, request bodies or raw errors.
+  - `mail-worker.ts` / `scripts/cron-mail.mjs`: finite mail queue with a lease;
+    uncertain SMTP delivery needs manual review. Credentials are encrypted and
+    browser views are explicit allowlists (`mail-settings.ts`). See `docs/EMAIL.md`.
   - `theme.ts` + `globals.css`: accent presets (`data-accent`), semantic tokens
   - `form-state.ts` / `form-actions.ts` + `components/admin/ActionForm.tsx`:
     admin forms return validation errors inline (thrown messages are hidden
@@ -70,8 +82,13 @@ install: `deploy/scripts/install.sh`; updates: `ourdeals update` on the server
 ## Rules that must not be broken
 
 **Amazon Associates compliance** (account-termination risk):
-- Never store or display prices, discounts, "% off", coupon codes, ratings, or
-  scarcity claims. `couponCode` is always written as `null`.
+- Do not accept prices, discounts, "% off", coupon codes, ratings or scarcity
+  claims in authored copy. `couponCode` is always `null`. The owner requested
+  verified savings badges: only trusted Creators API featured-offer percentages
+  may populate `discount*` fields. Show timestamps/basis/disclaimer; hide at
+  API promotion end or 24h, whichever comes first. No manual savings override.
+  Explicitly labelled sample savings apply only to original `isDemo` previews.
+  `cron-amazon.mjs` refreshes hourly; see `docs/DISCOUNTS.md`.
 - Product images stay as Amazon CDN URLs. Never download or rehost them.
 - All generated or edited copy goes through `associatesClaimError()` before saving.
 
@@ -87,7 +104,16 @@ install: `deploy/scripts/install.sh`; updates: `ourdeals update` on the server
 (`requireProductAccess` / `requireSuperAdmin` + `canManageOwnedProduct`), not
 only in middleware. Staff admins see/modify only their own deals.
 
-**One deal per ASIN + marketplace** across all admins (US and UK are separate).
+**Preview listings**: `isDemo=true` marks original illustrated sample data. Never
+redirect these to Amazon, record affiliate clicks, refresh them via API, include
+them in the sitemap or send them to social channels. Settings → Samples manages
+only these entries.
+
+**Social delivery**: preserve the unique deal/channel key and atomic claim.
+Ambiguous platform writes must remain `uncertain` until an admin checks them;
+never blindly retry them. See `docs/SOCIAL.md`.
+
+**One deal per ASIN + marketplace** across all admins (US, UK and Canada are separate).
 
 **Paid links**: use `AFFILIATE_LINK_REL` (never `noreferrer`) and keep `/go`'s
 `strict-origin-when-cross-origin` referrer policy: Amazon must see the

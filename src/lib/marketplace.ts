@@ -2,7 +2,7 @@
  * Amazon retail marketplaces we support for import + public badges.
  */
 
-export type MarketplaceCode = "US" | "UK";
+export type MarketplaceCode = "US" | "UK" | "CA";
 
 export type MarketplaceConfig = {
   code: MarketplaceCode;
@@ -24,6 +24,10 @@ export const MARKETPLACES: Record<MarketplaceCode, MarketplaceConfig> = {
     marketplaceHost: "www.amazon.com",
     retailHost: "amazon.com",
   },
+  CA: {
+    code: "CA", badge: "CA", label: "Amazon.ca (Canada)",
+    marketplaceHost: "www.amazon.ca", retailHost: "amazon.ca",
+  },
   UK: {
     code: "UK",
     badge: "UK",
@@ -33,10 +37,10 @@ export const MARKETPLACES: Record<MarketplaceCode, MarketplaceConfig> = {
   },
 };
 
-export const MARKETPLACE_OPTIONS: MarketplaceCode[] = ["US", "UK"];
+export const MARKETPLACE_OPTIONS: MarketplaceCode[] = ["US", "UK", "CA"];
 
 export function isMarketplaceCode(value: string): value is MarketplaceCode {
-  return value === "US" || value === "UK";
+  return value === "US" || value === "UK" || value === "CA";
 }
 
 export function parseMarketplace(
@@ -55,6 +59,7 @@ export function detectMarketplaceFromInput(
   try {
     const host = new URL(raw).hostname.replace(/^www\./i, "").toLowerCase();
     if (host === "amazon.co.uk" || host.endsWith(".amazon.co.uk")) return "UK";
+    if (host === "amazon.ca" || host.endsWith(".amazon.ca")) return "CA";
     if (host === "amazon.com" || host.endsWith(".amazon.com")) return "US";
   } catch {
     /* not a URL */
@@ -90,18 +95,13 @@ export function parseMarketplaceFilter(
 /** Short “ships to / store” line for deal pages. */
 export function marketplaceShipsNote(code: string | null | undefined): string {
   const market = parseMarketplace(code);
-  if (market === "UK") {
-    return "Opens on Amazon.co.uk (UK store). Price and availability are shown on Amazon.";
-  }
-  return "Opens on Amazon.com (US store). Price and availability are shown on Amazon.";
+  return `Opens on ${MARKETPLACES[market].label}. Price and availability are shown on Amazon.`;
 }
 
 /** One-line store cue for social captions. */
 export function marketplaceSocialLine(code: string | null | undefined): string {
   const market = parseMarketplace(code);
-  return market === "UK"
-    ? "Available on Amazon.co.uk (UK)"
-    : "Available on Amazon.com (US)";
+  return `Available on ${MARKETPLACES[market].label}`;
 }
 
 

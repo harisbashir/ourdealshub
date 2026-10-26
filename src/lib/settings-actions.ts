@@ -1,4 +1,5 @@
 "use server";
+import { createChangeNotifier } from "@/lib/system-events";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -24,6 +25,7 @@ export async function saveApiKeys(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
+  const notifyChange = createChangeNotifier("settings", "API credential settings updated", "/admin/settings");
   const admin = await requireSuperAdmin();
   const changed: string[] = [];
 
@@ -53,7 +55,9 @@ export async function saveApiKeys(
     if (value) changed.push(field.label);
   }
 
+  if (changed.length) await notifyChange();
   revalidatePath("/admin/settings");
+  if (changed.length) await notifyChange();
   revalidatePath("/admin");
   return {
     ok: true,
@@ -62,7 +66,7 @@ export async function saveApiKeys(
 }
 
 export async function testApiConnection(
-  target: "gemini" | "amazon-us" | "amazon-uk"
+  target: "gemini" | "amazon-us" | "amazon-uk" | "amazon-ca"
 ): Promise<ActionResult> {
   const admin = await requireSuperAdmin();
   const limited = await rateLimitDurable(`api-test:${admin.id}`, 20, 15 * 60_000);
@@ -75,7 +79,7 @@ export async function testApiConnection(
       ? { ok: true, message: `Gemini is working (${r.model}).` }
       : { ok: false, message: r.error };
   }
-  const market = target === "amazon-uk" ? "UK" : "US";
+  const market = target === "amazon-ca" ? "CA" : target === "amazon-uk" ? "UK" : "US";
   const r = await verifyAmazonCredentials(market);
   return r.ok
     ? { ok: true, message: `Signed in to the Amazon Creators API (${market}).` }
@@ -86,6 +90,7 @@ export async function updateAccentTheme(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
+  const notifyChange = createChangeNotifier("settings", "Site appearance updated", "/admin/settings");
   await requireSuperAdmin();
   const accentTheme = parseAccent(String(formData.get("accentTheme") || ""));
   await prisma.siteSettings.upsert({
@@ -94,6 +99,7 @@ export async function updateAccentTheme(
     update: { accentTheme },
   });
   // Every page reads the accent in its layout
+  await notifyChange();
   revalidatePath("/", "layout");
   return { ok: true, message: "Colour theme updated." };
 }

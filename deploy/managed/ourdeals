@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+base=/opt/ourdealshub-managed
+export PATH=/opt/node22/bin:$PATH
+case "${1:-help}" in
+  status)
+    readlink "$base/current"
+    node --version
+    mariadb --version
+    systemctl --no-pager status ourdealshub-managed.service ourdealshub-https.service mariadb.service
+    ;;
+  logs) journalctl -u ourdealshub-managed.service -n 80 -f ;;
+  restart) sudo systemctl restart ourdealshub-managed.service ;;
+  backup) cd "$base/current"; node --env-file="$base/.env" scripts/backup-db.mjs ;;
+  backups) ls -lt /var/backups/ourdealshub-managed/*.sql.gz ;;
+  cron) cd "$base/current"; flock -n "$base/cron.lock" node --env-file="$base/.env" scripts/cron-daily.mjs ;;
+  cert) cp /var/lib/ourdeals-caddy/caddy/pki/authorities/local/root.crt ./caddy-root.crt ;;
+  *) echo 'ourdeals status | logs | restart | backup | backups | cron | cert'
+     echo 'Deploy from your development checkout: bash deploy/managed/update-vm.sh'
+     echo 'Operations and rollback: docs/VM.md' ;;
+esac

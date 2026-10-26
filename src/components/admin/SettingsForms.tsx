@@ -163,7 +163,7 @@ function SelectInput({ view }: { view: FieldView }) {
   );
 }
 
-function TestButton({ target, disabled }: { target: "gemini" | "amazon-us" | "amazon-uk"; disabled: boolean }) {
+function TestButton({ target, disabled }: { target: "gemini" | "amazon-us" | "amazon-uk" | "amazon-ca"; disabled: boolean }) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
   return (
@@ -183,7 +183,7 @@ function TestButton({ target, disabled }: { target: "gemini" | "amazon-us" | "am
 }
 
 const GROUPS: {
-  id: "gemini" | "amazon-us" | "amazon-uk";
+  id: "gemini" | "amazon-us" | "amazon-uk" | "amazon-ca";
   title: string;
   description: React.ReactNode;
 }[] = [
@@ -209,6 +209,8 @@ const GROUPS: {
       </>
     ),
   },
+  { id: "amazon-ca", title: "Amazon Creators API · Canada store",
+    description: <>Use credentials from your Amazon.ca Associates account. Select the credential version issued by Amazon (North America defaults to 3.1). Your Canada tracking ID is set separately under Admins.</> },
   {
     id: "amazon-uk",
     title: "Amazon Creators API · UK store",

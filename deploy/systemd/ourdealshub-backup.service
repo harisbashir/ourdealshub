@@ -1,5 +1,5 @@
 [Unit]
-Description=OurDealsHub nightly Postgres backup
+Description=OurDealsHub nightly MariaDB backup
 After=docker.service
 Requires=docker.service
 

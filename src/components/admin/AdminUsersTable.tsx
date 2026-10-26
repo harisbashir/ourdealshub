@@ -15,6 +15,7 @@ export type AdminRow = {
   canManageProducts: boolean;
   amazonTrackingId: string | null;
   amazonTrackingIdUk: string | null;
+  amazonTrackingIdCa: string | null;
   createdAt: string;
   productCount: number;
 };
@@ -78,7 +79,7 @@ export function AdminUsersTable({
                   </div>
 
                   <div className="px-1 font-mono text-xs text-muted truncate">
-                    {a.amazonTrackingId || a.amazonTrackingIdUk ? (
+                    {a.amazonTrackingId || a.amazonTrackingIdUk || a.amazonTrackingIdCa ? (
                       <span className="block truncate">
                         {a.amazonTrackingId ? (
                           <span title="US">US: {a.amazonTrackingId}</span>
@@ -86,6 +87,7 @@ export function AdminUsersTable({
                           <span className="text-warning font-sans">US —</span>
                         )}
                         <br />
+                        {a.amazonTrackingIdCa && <span title="Canada">CA: {a.amazonTrackingIdCa}</span>}
                         {a.amazonTrackingIdUk ? (
                           <span title="UK">UK: {a.amazonTrackingIdUk}</span>
                         ) : (

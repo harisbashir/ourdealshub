@@ -29,8 +29,8 @@ export default async function SearchPage({ searchParams }: Props) {
         AND: [
           {
             OR: [
-              { title: { contains: query, mode: "insensitive" } },
-              { dealPost: { contains: query, mode: "insensitive" } },
+              { title: { contains: query } },
+              { dealPost: { contains: query } },
               { asin: { equals: query.toUpperCase() } },
             ],
           },

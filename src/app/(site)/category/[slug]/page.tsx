@@ -110,7 +110,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         slug: true,
         imageUrl: true,
         affiliateUrl: true,
+        isDemo: true,
         marketplace: true,
+        discountPercent: true,
+        discountBasis: true,
+        discountFetchedAt: true,
+        discountExpiresAt: true,
       },
     }),
   ]);

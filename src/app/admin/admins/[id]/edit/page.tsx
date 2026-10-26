@@ -104,6 +104,24 @@ export default async function EditAdminPage({ params }: Props) {
             imports.
           </p>
         </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1">
+            Amazon Tracking ID (Canada)
+          </label>
+          <input
+            name="amazonTrackingIdCa"
+            type="text"
+            maxLength={64}
+            defaultValue={admin.amazonTrackingIdCa || ""}
+            placeholder="e.g. admin2ca-20"
+            pattern="[A-Za-z0-9][A-Za-z0-9-]{1,62}"
+            className={fieldClass}
+          />
+          <p className="mt-1 text-xs text-muted">
+            Separate Associates tag from Amazon.ca. Required before Canada
+            imports.
+          </p>
+        </div>
         {!isSelf && (
           <>
             <label className="flex items-center gap-2 text-sm text-foreground">

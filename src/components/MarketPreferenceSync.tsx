@@ -26,7 +26,7 @@ export function MarketPreferenceSync() {
     if (params.has("market")) return;
 
     const pref = readMarketPreference();
-    if (pref !== "US" && pref !== "UK") return;
+    if (pref !== "US" && pref !== "UK" && pref !== "CA") return;
 
     const next = new URLSearchParams(params.toString());
     next.set("market", pref);

@@ -22,6 +22,7 @@ import {
 } from "@/lib/admin-actions";
 
 export type AdminProductRow = {
+  isDemo: boolean;
   id: string;
   title: string;
   slug: string;
@@ -208,7 +209,7 @@ function ProductSubCard({
 
   function onArchive() {
     const ok = window.confirm(
-      `Archive “${p.title}”? It will be hidden from the storefront.`
+      `Archive “${p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>}”? It will be hidden from the storefront.`
     );
     if (!ok) return;
     startTransition(async () => {
@@ -226,7 +227,7 @@ function ProductSubCard({
 
   function onHardDelete() {
     const ok = window.confirm(
-      `Permanently delete “${p.title}”? This cannot be undone.`
+      `Permanently delete “${p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>}”? This cannot be undone.`
     );
     if (!ok) return;
     startTransition(async () => {
@@ -256,7 +257,7 @@ function ProductSubCard({
             checked={!!selected}
             onChange={onToggle}
             className="h-5 w-5"
-            aria-label={`Select ${p.title}`}
+            aria-label={`Select ${p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>}`}
           />
         ) : (
           <span className="block w-5" aria-hidden />
@@ -272,11 +273,11 @@ function ProductSubCard({
             href={`/admin/products/${p.id}/edit`}
             className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground hover:underline"
           >
-            {p.title}
+            {p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>}
           </Link>
           <p className="mt-0.5 text-[13px] text-muted">
-            <span title={p.marketplace === "UK" ? "Amazon.co.uk" : "Amazon.com"}>
-              {p.marketplace === "UK" ? "UK" : "US"}
+            <span title={p.marketplace === "CA" ? "Amazon.ca" : p.marketplace === "UK" ? "Amazon.co.uk" : "Amazon.com"}>
+              {p.marketplace || "US"}
             </span>
             {" · "}
             {p.categoryName}
@@ -332,7 +333,7 @@ function ProductSubCard({
       <div className="col-start-2 -ml-2.5 flex items-center gap-0.5 md:col-start-auto md:ml-0 md:justify-end">
         {!archived && (
           <>
-            <Link href={`/admin/products/${p.id}/edit`} className={iconBtn} aria-label={`Edit ${p.title}`} title="Edit">
+            <Link href={`/admin/products/${p.id}/edit`} className={iconBtn} aria-label={`Edit ${p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>}`} title="Edit">
               <Pencil className="h-[18px] w-[18px]" aria-hidden />
             </Link>
             <button type="button" onClick={copyDealUrl} className={iconBtn} aria-label="Copy page link" title="Copy page link">
@@ -342,22 +343,22 @@ function ProductSubCard({
             <Link href={`/admin/analytics/product/${p.id}`} className={iconBtn} aria-label="Click analytics" title="Click analytics">
               <BarChart3 className="h-[18px] w-[18px]" aria-hidden />
             </Link>
-            {(p.asin || p.affiliateUrl.includes("amazon.")) && (
+            {!p.isDemo && (p.asin || p.affiliateUrl.includes("amazon.")) && (
               <button type="button" disabled={pending} onClick={onSync} className={iconBtn} aria-label="Refresh from Amazon" title="Refresh from Amazon">
                 <RefreshCw className={`h-[18px] w-[18px] ${pending ? "animate-spin" : ""}`} aria-hidden />
               </button>
             )}
-            <button type="button" disabled={pending} onClick={onArchive} className={`${iconBtn} hover:text-danger`} aria-label={`Archive ${p.title}`} title="Archive">
+            <button type="button" disabled={pending} onClick={onArchive} className={`${iconBtn} hover:text-danger`} aria-label={`Archive ${p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>}`} title="Archive">
               <Trash2 className="h-[18px] w-[18px]" aria-hidden />
             </button>
           </>
         )}
         {archived && (
           <>
-            <button type="button" disabled={pending} onClick={onRestore} className={`${iconBtn} hover:text-success`} aria-label={`Restore ${p.title}`} title="Restore">
+            <button type="button" disabled={pending} onClick={onRestore} className={`${iconBtn} hover:text-success`} aria-label={`Restore ${p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>}`} title="Restore">
               <ArchiveRestore className="h-[18px] w-[18px]" aria-hidden />
             </button>
-            <button type="button" disabled={pending} onClick={onHardDelete} className={`${iconBtn} hover:text-danger`} aria-label={`Delete ${p.title} permanently`} title="Delete permanently">
+            <button type="button" disabled={pending} onClick={onHardDelete} className={`${iconBtn} hover:text-danger`} aria-label={`Delete ${p.title}{p.isDemo && <span className="ml-2 text-xs font-medium text-muted">Sample</span>} permanently`} title="Delete permanently">
               <Trash2 className="h-[18px] w-[18px]" aria-hidden />
             </button>
           </>

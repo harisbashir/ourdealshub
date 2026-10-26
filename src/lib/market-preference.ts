@@ -2,7 +2,7 @@
 
 export const MARKET_PREF_KEY = "odh-market";
 
-export type MarketPreference = "" | "US" | "UK";
+export type MarketPreference = "" | "US" | "UK" | "CA";
 
 export function readMarketPreference(): MarketPreference | null {
   if (typeof window === "undefined") return null;
@@ -11,7 +11,7 @@ export function readMarketPreference(): MarketPreference | null {
     if (raw === null) return null;
     const v = raw.trim().toUpperCase();
     if (v === "" || v === "ALL") return "";
-    if (v === "US" || v === "UK") return v;
+    if (v === "US" || v === "UK" || v === "CA") return v;
   } catch {
     /* private mode / blocked storage */
   }
@@ -43,7 +43,7 @@ export function subscribeMarketPreference(listener: () => void) {
 
 export function marketQuerySuffix(market: string | null | undefined): string {
   const v = (market || "").trim().toUpperCase();
-  if (v === "US" || v === "UK") return `?market=${v}`;
+  if (v === "US" || v === "UK" || v === "CA") return `?market=${v}`;
   return "";
 }
 
@@ -52,7 +52,7 @@ export function appendMarketQuery(
   market: string | null | undefined
 ): string {
   const v = (market || "").trim().toUpperCase();
-  if (v !== "US" && v !== "UK") return href;
+  if (v !== "US" && v !== "UK" && v !== "CA") return href;
   const join = href.includes("?") ? "&" : "?";
   return `${href}${join}market=${v}`;
 }

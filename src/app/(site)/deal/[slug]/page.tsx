@@ -13,6 +13,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { publicProductWhere, getRelatedProducts } from "@/lib/product-query";
 import { marketplaceLabel, marketplaceShipsNote } from "@/lib/marketplace";
 import { AFFILIATE_LINK_REL } from "@/lib/affiliate-disclosure";
+import { DealSavings } from "@/components/DealSavings";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -36,6 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   return {
+    robots: product.isDemo ? { index: false, follow: false } : undefined,
     title: product.title,
     description: desc,
     alternates: { canonical: `/deal/${product.slug}` },
@@ -109,11 +111,11 @@ export default async function DealPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          __html: JSON.stringify(product.isDemo ? [] : jsonLd).replace(/</g, "\\u003c"),
         }}
       />
 
-      <StickyDealCta goUrl={goUrl} title={product.title} />
+      {!product.isDemo && <StickyDealCta goUrl={goUrl} title={product.title} />}
 
       <nav aria-label="Breadcrumb" className="site-container pt-4">
         <ol className="flex flex-wrap items-center gap-1 text-[13px] text-muted">
@@ -149,23 +151,28 @@ export default async function DealPage({ params }: Props) {
             {product.title}
           </h1>
           <p className="mt-2 text-[15px] text-muted">
-            {marketplaceShipsNote(product.marketplace)}
+            {product.isDemo ? "Sample listing · original illustration · preview only" : marketplaceShipsNote(product.marketplace)}
           </p>
 
           <div id="deal-primary-cta" className="mt-5 max-w-md space-y-3">
+            <DealSavings product={{ isDemo: product.isDemo, slug: product.slug, marketplace: product.marketplace,
+              discountPercent: product.discountPercent, discountBasis: product.discountBasis,
+              discountFetchedAt: product.discountFetchedAt, discountExpiresAt: product.discountExpiresAt }} />
+            {product.isDemo ? <p className="rounded-2xl bg-card-muted p-4 text-[15px] leading-relaxed text-muted ring-1 ring-border-subtle">This sample lets you explore the layout. It is not a real offer and has no shopping link.</p> : <>
             <a
               href={goUrl}
               target="_blank"
               rel={AFFILIATE_LINK_REL}
               className="pressable flex h-[3.25rem] w-full items-center justify-center rounded-full bg-brand text-[17px] font-semibold text-on-brand hover:bg-brand-dark"
             >
-              View on Amazon
+              Get deal on Amazon
             </a>
+            </>}
             <div className="flex gap-3">
               <SaveButton slug={product.slug} title={product.title} variant="button" />
               <ShareButton title={product.title} path={`/deal/${product.slug}`} />
             </div>
-            <AffiliateLinkNote />
+            {!product.isDemo && <AffiliateLinkNote />}
           </div>
 
           <section className="mt-8 max-w-2xl" aria-labelledby="why-heading">

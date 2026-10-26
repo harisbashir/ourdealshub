@@ -1,5 +1,6 @@
 "use client";
 
+import { MARKETPLACE_OPTIONS, marketplaceLabel, parseMarketplace, detectMarketplaceFromInput } from "@/lib/marketplace";
 import { ActionForm } from "@/components/admin/ActionForm";
 import type { FormState } from "@/lib/form-state";
 
@@ -13,6 +14,7 @@ import {
 type CategoryOption = { id: string; name: string };
 
 export type ProductFormValues = {
+  marketplace?: string;
   title: string;
   description: string | null;
   dealPost: string | null;
@@ -41,6 +43,7 @@ export function ProductForm({
   geminiConfigured?: boolean;
 }) {
   const [values, setValues] = useState({
+    marketplace: parseMarketplace(product?.marketplace),
     title: product?.title || "",
     description: product?.description || "",
     dealPost: product?.dealPost || "",
@@ -70,7 +73,7 @@ export function ProductForm({
     setAssistMessage("");
     startFetch(async () => {
       const res = await fetchProductDetailsFromLink(
-        values.affiliateUrl || values.asin
+        values.affiliateUrl || values.asin, values.marketplace
       );
       if (!res.ok) {
         setAssistError(res.error);
@@ -114,6 +117,13 @@ export function ProductForm({
       action={action}
       className="space-y-5 rounded-xl bg-card border border-border p-6 max-w-3xl shadow-sm"
     >
+      <div>
+        <label htmlFor="manual-marketplace" className="mb-1.5 block text-[15px] font-medium text-foreground">Amazon store</label>
+        <select id="manual-marketplace" name="marketplace" value={values.marketplace} onChange={(event) => setValues((previous) => ({ ...previous, marketplace: parseMarketplace(event.target.value) }))} className="min-h-11 w-full rounded-xl border border-border bg-card px-3 text-[15px] text-foreground">
+          {MARKETPLACE_OPTIONS.map((market) => <option key={market} value={market}>{marketplaceLabel(market)}</option>)}
+        </select>
+        <p className="mt-1 text-xs text-muted">Pasting a full Amazon link selects its store automatically.</p>
+      </div>
       {(values.imageUrl || values.title) && (
         <div className="flex gap-4 rounded-lg border border-border bg-card-muted p-3">
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-card border border-border">
@@ -145,7 +155,7 @@ export function ProductForm({
           name="affiliateUrl"
           required
           value={values.affiliateUrl}
-          onChange={(v) => setValues((s) => ({ ...s, affiliateUrl: v }))}
+          onChange={(v) => setValues((s) => ({ ...s, affiliateUrl: v, marketplace: detectMarketplaceFromInput(v) || s.marketplace }))}
           placeholder="https://www.amazon.com/dp/B0XXXXXXXX"
         />
         <p className="mt-1 text-xs text-muted-fg">

@@ -26,9 +26,9 @@ function SiteSearchInner({
     const fromUrl = (params.get("market") || "").toUpperCase();
     const pref = readMarketPreference();
     const market =
-      fromUrl === "US" || fromUrl === "UK"
+      fromUrl === "US" || fromUrl === "UK" || fromUrl === "CA"
         ? fromUrl
-        : pref === "US" || pref === "UK"
+        : pref === "US" || pref === "UK" || pref === "CA"
           ? pref
           : "";
     if (market) next.set("market", market);

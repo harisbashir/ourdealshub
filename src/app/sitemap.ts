@@ -12,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [products, categories, posts] = await Promise.all([
     prisma.product.findMany({
-      where: publicProductWhere(),
+      where: publicProductWhere({ isDemo: false }),
       select: { slug: true, updatedAt: true },
       orderBy: { updatedAt: "desc" },
       take: 5000,

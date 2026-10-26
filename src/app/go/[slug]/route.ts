@@ -32,11 +32,17 @@ export async function GET(req: Request, { params }: Props) {
 
   const product = await prisma.product.findFirst({
     where: publicProductWhere({ slug }),
-    select: { id: true, affiliateUrl: true },
+    select: { id: true, affiliateUrl: true, isDemo: true },
   });
 
   if (!product) {
     return redirectHome(req);
+  }
+
+  if (product.isDemo) {
+    const res = NextResponse.redirect(`${siteOriginFrom(req)}/deal/${slug}`, 302);
+    res.headers.set("Cache-Control", "no-store");
+    return res;
   }
 
   if (!isSafeAffiliateRedirectUrl(product.affiliateUrl)) {

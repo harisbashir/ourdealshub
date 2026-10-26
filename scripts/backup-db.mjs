@@ -1,83 +1,43 @@
-/**
- * Postgres backup via pg_dump (Docker or local).
- * Usage: npm run db:backup
- * Requires: DATABASE_URL in .env, and pg_dump on PATH (or docker).
- * Keeps the newest KEEP_BACKUPS files (default 14).
- */
-import { execSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  unlinkSync,
-} from "node:fs";
-import { join } from "node:path";
+import { recordOperation } from "./record-operation.mjs";
+// Portable MariaDB backup. Node 22 loads .env; the DB password is never a shell argument.
+import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
+import { mkdir, readdir, rename, rm, chmod } from "node:fs/promises";
+import { pipeline } from "node:stream/promises";
+import { createGzip } from "node:zlib";
+import { resolve, join } from "node:path";
 
-const KEEP_BACKUPS = Math.max(
-  1,
-  Number.parseInt(process.env.BACKUP_KEEP || "14", 10) || 14
-);
-
-function loadDatabaseUrl() {
-  const envPath = join(process.cwd(), ".env");
-  if (!existsSync(envPath)) {
-    throw new Error(".env not found");
-  }
-  const raw = readFileSync(envPath, "utf8");
-  const line = raw.split(/\r?\n/).find((l) => l.startsWith("DATABASE_URL="));
-  if (!line) throw new Error("DATABASE_URL missing in .env");
-  return line
-    .replace(/^DATABASE_URL=/, "")
-    .trim()
-    .replace(/^"|"$/g, "");
-}
-
-function pruneOldBackups(dir) {
-  const files = readdirSync(dir)
-    .filter((f) => f.startsWith("ourdealshub-") && f.endsWith(".sql"))
-    .map((f) => {
-      const path = join(dir, f);
-      return { path, mtime: statSync(path).mtimeMs };
-    })
-    .sort((a, b) => b.mtime - a.mtime);
-
-  for (const old of files.slice(KEEP_BACKUPS)) {
-    unlinkSync(old.path);
-    console.log("Pruned old backup:", old.path);
-  }
-}
-
-const url = loadDatabaseUrl();
-const outDir = join(process.cwd(), "backups");
-mkdirSync(outDir, { recursive: true });
-const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-const outFile = join(outDir, `ourdealshub-${stamp}.sql`);
-
-console.log("Backing up to", outFile);
-
+const url = new URL(process.env.DATABASE_URL || "");
+if (url.protocol !== "mysql:") throw new Error("DATABASE_URL must use mysql://");
+const dir = resolve(process.env.BACKUP_DIR || "backups");
+await mkdir(dir, { recursive: true, mode: 0o700 });
+await chmod(dir, 0o700);
+const file = join(dir, `ourdealshub-${new Date().toISOString().replace(/[:.]/g, "-")}.sql.gz`);
+const args = ["--single-transaction", "--quick", "--skip-lock-tables", "--hex-blob",
+  "--default-character-set=utf8mb4", "--host", url.hostname,
+  "--port", url.port || "3306", "--user", decodeURIComponent(url.username),
+  decodeURIComponent(url.pathname.slice(1))];
+const child = spawn(process.env.DB_DUMP_BIN || "mariadb-dump", args, {
+  env: { ...process.env, MYSQL_PWD: decodeURIComponent(url.password) },
+  stdio: ["ignore", "pipe", "pipe"],
+});
+const status = new Promise((resolve, reject) => {
+  child.once("error", reject);
+  child.once("close", (code) => code === 0 ? resolve() : reject(new Error(`Database dump exited ${code}`)));
+});
+// Surface tool errors, without printing the connection string or password.
+child.stderr.on("data", (chunk) => process.stderr.write(chunk));
 try {
-  execSync(`pg_dump "${url}" -f "${outFile}" --no-owner --no-acl`, {
-    stdio: "inherit",
-    env: process.env,
-  });
-  console.log("Backup OK:", outFile);
-} catch {
-  console.log("pg_dump failed — trying docker postgres container…");
-  try {
-    execSync(
-      `docker exec -i ourdealshub-db pg_dump -U ourdealshub ourdealshub > "${outFile}"`,
-      { stdio: "inherit", shell: true }
-    );
-    console.log("Backup OK (docker):", outFile);
-  } catch {
-    console.error(
-      "Backup failed. Install PostgreSQL client tools or start docker compose."
-    );
-    process.exit(1);
-  }
+  await Promise.all([status, pipeline(child.stdout, createGzip(), createWriteStream(file + ".tmp", { mode: 0o600 }))]);
+  await rename(file + ".tmp", file);
+  const keep = Math.max(1, parseInt(process.env.BACKUP_KEEP || "14", 10) || 14);
+  const files = (await readdir(dir)).filter((f) => /^ourdealshub-.*\.sql\.gz$/.test(f)).sort().reverse();
+  for (const old of files.slice(keep)) await rm(join(dir, old));
+  console.log(`Backup written: ${file}`);
+  await recordOperation("Database backup completed", "A private, compressed MariaDB backup was created successfully.");
+} catch (error) {
+  child.kill();
+  await rm(file + ".tmp", { force: true });
+  await recordOperation("Database backup failed", "Review backup job logs and available disk space.", "error");
+  throw error;
 }
-
-pruneOldBackups(outDir);
-console.log(`Retention: keeping newest ${KEEP_BACKUPS} backups.`);

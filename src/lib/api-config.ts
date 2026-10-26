@@ -13,6 +13,9 @@ export type ApiConfigKey =
   | "AMAZON_US_CREDENTIAL_ID"
   | "AMAZON_US_CREDENTIAL_SECRET"
   | "AMAZON_US_CREDENTIAL_VERSION"
+  | "AMAZON_CA_CREDENTIAL_ID"
+  | "AMAZON_CA_CREDENTIAL_SECRET"
+  | "AMAZON_CA_CREDENTIAL_VERSION"
   | "AMAZON_UK_CREDENTIAL_ID"
   | "AMAZON_UK_CREDENTIAL_SECRET"
   | "AMAZON_UK_CREDENTIAL_VERSION";
@@ -20,7 +23,7 @@ export type ApiConfigKey =
 export type ApiConfigField = {
   key: ApiConfigKey;
   label: string;
-  group: "gemini" | "amazon-us" | "amazon-uk";
+  group: "gemini" | "amazon-us" | "amazon-uk" | "amazon-ca";
   /** Secrets are never sent back to the browser — only a masked hint. */
   secret: boolean;
   placeholder?: string;
@@ -42,6 +45,9 @@ export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 export const CREDENTIAL_VERSION_OPTIONS = ["3.1", "3.2", "3.3", "2.1", "2.2", "2.3"];
 
 export const API_CONFIG_FIELDS: ApiConfigField[] = [
+  { key: "AMAZON_CA_CREDENTIAL_ID", label: "Credential ID", group: "amazon-ca", secret: true },
+  { key: "AMAZON_CA_CREDENTIAL_SECRET", label: "Credential secret", group: "amazon-ca", secret: true },
+  { key: "AMAZON_CA_CREDENTIAL_VERSION", label: "Credential version", group: "amazon-ca", secret: false, defaultValue: "3.1", options: CREDENTIAL_VERSION_OPTIONS },
   {
     key: "GEMINI_API_KEY",
     label: "Gemini API key",

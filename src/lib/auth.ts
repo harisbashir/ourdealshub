@@ -1,3 +1,4 @@
+import { recordSystemEvent } from "@/lib/system-events";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
@@ -36,7 +37,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           15 * 60_000
         );
         const byIp = await rateLimitDurable(`login-ip:${ip}`, 30, 15 * 60_000);
-        if (!byEmailIp.ok || !byIp.ok) return null;
+        if (!byEmailIp.ok || !byIp.ok) {
+          await recordSystemEvent({ category: "security", level: "warning", title: "Sign-in rate limit reached", detail: "Repeated sign-in attempts were blocked. No passwords or submitted credentials are included in this alert.", dedupeKey: `sign-in-limit:${new Date().toISOString().slice(0, 13)}`, adminPath: "/admin/admins" });
+          return null;
+        }
 
         const user = await prisma.adminUser.findUnique({ where: { email } });
         // Always burn similar time even if email is unknown (harder to probe)
@@ -56,6 +60,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await prisma.rateBucket
           .delete({ where: { key: `login:${email}:${ip}` } })
           .catch(() => {});
+
+        await recordSystemEvent({ category: "security", title: "An administrator signed in", adminPath: "/admin/admins" });
 
         return {
           id: user.id,

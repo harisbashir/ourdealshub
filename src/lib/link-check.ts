@@ -146,6 +146,7 @@ export async function checkProductLinks(
   const ownerId = opts?.ownerAdminId?.trim() || null;
   const products = await prisma.product.findMany({
     where: {
+      isDemo: false,
       deletedAt: null,
       isPublished: true,
       ...(ownerId ? { createdById: ownerId } : {}),

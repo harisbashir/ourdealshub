@@ -7,12 +7,17 @@ import {
 
 /** Fields needed by ProductCard / carousels — avoids loading dealPost/description. */
 export const productCardSelect = {
+  isDemo: true,
   id: true,
   title: true,
   slug: true,
   imageUrl: true,
   affiliateUrl: true,
   marketplace: true,
+  discountPercent: true,
+  discountBasis: true,
+  discountFetchedAt: true,
+  discountExpiresAt: true,
 } satisfies Prisma.ProductSelect;
 
 /** Public storefront: published, not archived, not expired. */
@@ -179,7 +184,7 @@ export function adminProductWhere(opts: {
   if (q) {
     parts.push({
       OR: [
-        { title: { contains: q, mode: "insensitive" } },
+        { title: { contains: q } },
         { asin: { contains: q.toUpperCase() } },
         { slug: { contains: q.toLowerCase() } },
       ],

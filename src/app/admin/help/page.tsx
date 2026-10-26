@@ -146,7 +146,7 @@ const RULES: HelpItem[] = [
     a: (
       <p>
         Product photos must come from Amazon (the Creators API or SiteStripe) and stay on
-        Amazon&apos;s servers; never upload or edit them. Every “View on Amazon” button is labelled
+        Amazon&apos;s servers; never upload or edit them. Every “Get deal on Amazon” button is labelled
         as a paid link and the site shows the Associates disclosure on every page.
       </p>
     ),
@@ -168,7 +168,7 @@ const STATS: HelpItem[] = [
     q: "What counts as a click?",
     a: (
       <p>
-        Each time a visitor opens a “View on Amazon” link. Obvious bots and rapid repeat clicks are
+        Each time a visitor opens a “Get deal on Amazon” link. Obvious bots and rapid repeat clicks are
         ignored. Click history is kept for 90 days. Trending ranks deals by clicks.
       </p>
     ),
@@ -218,7 +218,7 @@ const SUPER: HelpItem[] = [
     q: "Managing admins and tracking IDs",
     a: (
       <p>
-        <Link href="/admin/admins">Admins</Link> lets you add people, set their US and UK tracking
+        <Link href="/admin/admins">Admins</Link> lets you add people, set their US, UK and Canada tracking
         IDs, limit them to product work, revoke access or delete them. Passwords need at least 10
         characters. Revoked admins are signed out within seconds.
       </p>

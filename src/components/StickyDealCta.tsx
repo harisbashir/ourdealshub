@@ -49,7 +49,7 @@ export function StickyDealCta({
           tabIndex={show ? 0 : -1}
           className="pressable inline-flex h-11 shrink-0 items-center rounded-full bg-brand px-5 text-[15px] font-semibold text-on-brand hover:bg-brand-dark"
         >
-          View on Amazon
+          Get deal on Amazon
         </a>
       </div>
     </div>

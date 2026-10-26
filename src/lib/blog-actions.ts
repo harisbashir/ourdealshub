@@ -1,4 +1,5 @@
 "use server";
+import { createChangeNotifier } from "@/lib/system-events";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -62,6 +63,7 @@ async function uniqueBlogSlug(base: string, excludeId?: string) {
 }
 
 export async function createBlogPost(formData: FormData) {
+  const notifyChange = createChangeNotifier("content", "Blog post created", "/admin/blog");
   const admin = await requireSuperAdmin();
 
   const title = String(formData.get("title") || "").trim().slice(0, 200);
@@ -99,13 +101,17 @@ export async function createBlogPost(formData: FormData) {
     },
   });
 
+  await notifyChange();
   revalidatePath("/blog");
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/blog");
   redirect(`/admin/blog/${post.id}/edit`);
 }
 
 export async function updateBlogPost(id: string, formData: FormData) {
+  const notifyChange = createChangeNotifier("content", "Blog post updated", "/admin/blog");
   await requireSuperAdmin();
 
   const existing = await prisma.blogPost.findUnique({ where: { id } });
@@ -158,15 +164,20 @@ export async function updateBlogPost(id: string, formData: FormData) {
     }),
   ]);
 
+  await notifyChange();
   revalidatePath("/blog");
+  await notifyChange();
   revalidatePath(`/blog/${slug}`);
-  if (existing.slug !== slug) revalidatePath(`/blog/${existing.slug}`);
+  if (existing.slug !== slug) { await notifyChange(); revalidatePath(`/blog/${existing.slug}`); }
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/blog");
   redirect(`/admin/blog/${id}/edit`);
 }
 
 export async function deleteBlogPost(id: string) {
+  const notifyChange = createChangeNotifier("content", "Blog post deleted", "/admin/blog");
   await requireSuperAdmin();
   const existing = await prisma.blogPost.findUnique({
     where: { id },
@@ -174,8 +185,12 @@ export async function deleteBlogPost(id: string) {
   });
   if (!existing) return;
   await prisma.blogPost.delete({ where: { id } });
+  await notifyChange();
   revalidatePath("/blog");
+  await notifyChange();
   revalidatePath(`/blog/${existing.slug}`);
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/blog");
 }

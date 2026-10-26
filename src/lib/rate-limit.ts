@@ -1,6 +1,6 @@
 /**
  * In-memory sliding-window rate limiter (single Node process).
- * For login / Amazon / Gemini / import use `rateLimitDurable` (Postgres)
+ * For login / Amazon / Gemini / import use `rateLimitDurable` (MariaDB)
  * so limits still work across serverless instances.
  * Keep this helper for high-volume, low-risk paths (e.g. click analytics).
  */

@@ -20,6 +20,7 @@ export default async function AdminsPage() {
       canManageProducts: true,
       amazonTrackingId: true,
       amazonTrackingIdUk: true,
+      amazonTrackingIdCa: true,
       createdAt: true,
       _count: { select: { products: true } },
     },
@@ -31,7 +32,7 @@ export default async function AdminsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Admins</h1>
           <p className="text-sm text-muted mt-1">
-            Each admin’s US / UK Amazon Tracking IDs are used automatically when
+            Each admin’s US / UK / Canada Amazon Tracking IDs are used automatically when
             they add deals. Display names appear as “Added by” on products.
           </p>
         </div>
@@ -54,6 +55,7 @@ export default async function AdminsPage() {
           canManageProducts: a.canManageProducts,
           amazonTrackingId: a.amazonTrackingId,
           amazonTrackingIdUk: a.amazonTrackingIdUk,
+          amazonTrackingIdCa: a.amazonTrackingIdCa,
           createdAt: a.createdAt.toISOString(),
           productCount: a._count.products,
         }))}

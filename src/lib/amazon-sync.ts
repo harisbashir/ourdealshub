@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { discountFields } from "@/lib/amazon-discounts";
 import { prisma } from "@/lib/prisma";
 import {
   getEnvPartnerTagFallback,
@@ -29,8 +30,10 @@ export type AmazonSyncSummary = {
  * Curated titles / write-ups are kept — only Amazon-sourced fields change.
  */
 export async function syncAmazonProducts(
-  limitPerMarket = 150
+  limitPerMarket = 150,
+  opts?: { revalidate?: boolean }
 ): Promise<AmazonSyncSummary> {
+  await prisma.product.updateMany({ where: { discountExpiresAt: { lte: new Date() } }, data: discountFields(null) });
   const summary: AmazonSyncSummary = {
     refreshed: 0,
     flagged: 0,
@@ -38,14 +41,14 @@ export async function syncAmazonProducts(
     skipped: 0,
     errors: 0,
   };
-  const markets: MarketplaceCode[] = ["US", "UK"];
+  const markets: MarketplaceCode[] = ["US", "UK", "CA"];
   let changedPublic = false;
 
   for (const market of markets) {
     if (!(await isAmazonConfigured(market))) continue;
 
     const products = await prisma.product.findMany({
-      where: { deletedAt: null, asin: { not: null }, marketplace: market },
+      where: { isDemo: false, deletedAt: null, asin: { not: null }, marketplace: market },
       orderBy: [{ lastSyncedAt: { sort: "asc", nulls: "first" } }],
       take: limitPerMarket,
       select: {
@@ -63,7 +66,7 @@ export async function syncAmazonProducts(
     for (const p of products) {
       const tag =
         (p.createdById && (await getAdminTrackingId(p.createdById, market))) ||
-        normalizeTrackingId(getEnvPartnerTagFallback());
+        (market === "US" ? normalizeTrackingId(getEnvPartnerTagFallback()) : null);
       if (!tag) {
         summary.skipped++;
         continue;
@@ -94,6 +97,7 @@ export async function syncAmazonProducts(
             where: { id: p.id },
             data: {
               imageUrl: r.data.imageUrl,
+              ...discountFields(r.data.discount),
               lastSyncedAt: now,
               linkStatus: "ok",
               linkCheckedAt: now,
@@ -110,6 +114,7 @@ export async function syncAmazonProducts(
             where: { id: p.id },
             data: {
               linkStatus: "broken",
+              ...discountFields(null),
               linkCheckedAt: now,
               lastSyncedAt: now,
               ...(unpublish ? { isPublished: false, scheduledAt: null } : {}),
@@ -128,6 +133,6 @@ export async function syncAmazonProducts(
     }
   }
 
-  if (changedPublic) revalidatePath("/", "layout");
+  if (changedPublic && opts?.revalidate !== false) revalidatePath("/", "layout");
   return summary;
 }

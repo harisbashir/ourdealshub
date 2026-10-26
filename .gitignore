@@ -33,6 +33,7 @@ yarn-error.log*
 # env files
 .env
 .env.local
+.env.*
 .env.*.local
 !.env.example
 
@@ -52,4 +53,6 @@ prisma/*.db-journal
 
 # DB dumps
 backups/
+*.sql.gz
+*.sql.gz.tmp
 

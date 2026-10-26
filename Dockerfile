@@ -22,7 +22,8 @@ RUN npm ci --no-audit --no-fund
 FROM deps AS builder
 ARG NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_OUTPUT=standalone
 COPY . .
 RUN npm run build
 

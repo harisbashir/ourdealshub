@@ -1,0 +1,19 @@
+[Unit]
+Description=OurDealsHub Node 22 (managed hosting equivalent)
+After=network.target mariadb.service
+Requires=mariadb.service
+[Service]
+User=haris
+Group=haris
+WorkingDirectory=/opt/ourdealshub-managed/current
+EnvironmentFile=/opt/ourdealshub-managed/.env
+Environment=PATH=/opt/node22/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/node22/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+MemoryMax=1G
+[Install]
+WantedBy=multi-user.target

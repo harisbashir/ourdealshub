@@ -81,13 +81,14 @@ export function AdminProductFilter({
         <label htmlFor="market-filter" className="sr-only">Store</label>
         <select
           id="market-filter"
-          value={market === "US" || market === "UK" ? market : ""}
+          value={market === "US" || market === "UK" || market === "CA" ? market : ""}
           onChange={(e) => onMarketChange(e.target.value)}
           className={field}
         >
           <option value="">All stores</option>
           <option value="US">US store</option>
           <option value="UK">UK store</option>
+          <option value="CA">Canada store</option>
         </select>
 
         {admins.length > 0 && (

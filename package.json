@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "eslint",
-    "test": "tsx --test src/lib/affiliate-url.test.ts src/lib/rate-limit.test.ts src/lib/associates-claims.test.ts src/lib/csv.test.ts src/lib/link-check.test.ts src/lib/amazon.test.ts src/lib/utils.test.ts",
+    "test": "tsx --test src/lib/affiliate-url.test.ts src/lib/rate-limit.test.ts src/lib/associates-claims.test.ts src/lib/csv.test.ts src/lib/link-check.test.ts src/lib/amazon.test.ts src/lib/utils.test.ts src/lib/marketplace.test.ts src/lib/social-api.test.ts src/lib/mail.test.ts src/lib/amazon-discounts.test.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate deploy",
@@ -15,8 +15,15 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
-    "db:backup": "node scripts/backup-db.mjs",
-    "postinstall": "prisma generate"
+    "db:backup": "node --env-file=.env scripts/backup-db.mjs",
+    "postinstall": "prisma generate",
+    "cron:daily": "node --env-file=.env scripts/cron-daily.mjs",
+    "test:db": "tsx --test --test-concurrency=1 src/lib/managed-db.integration.test.ts src/lib/mail.integration.test.ts",
+    "build:hostinger": "prisma migrate deploy && npm run build",
+    "cron:social": "node --env-file=.env scripts/cron-social.mjs",
+    "db:demo": "node --env-file=.env scripts/seed-demo-products.mjs",
+    "cron:mail": "node --env-file=.env scripts/cron-mail.mjs",
+    "cron:amazon": "node --env-file=.env scripts/cron-amazon.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -27,8 +34,11 @@
     "lucide-react": "^0.487.0",
     "next": "15.5.28",
     "next-auth": "^5.0.0-beta.25",
+    "nodemailer": "^8.0.11",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "sharp": "^0.35.5",
+    "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -36,6 +46,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -43,7 +54,6 @@
     "postcss": "^8.5.23",
     "prisma": "5.22.0",
     "tailwindcss": "^4",
-    "tsx": "^4.19.3",
     "typescript": "^5"
   },
   "overrides": {
@@ -52,6 +62,6 @@
     }
   },
   "engines": {
-    "node": ">=20.9"
+    "node": ">=22 <23"
   }
 }

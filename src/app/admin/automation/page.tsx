@@ -1,3 +1,4 @@
+import { socialOriginError } from "@/lib/social-api";
 import { requireSuperAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { publicProductWhere } from "@/lib/product-query";
@@ -22,7 +23,7 @@ export default async function AutomationPage() {
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ).replace(/\/$/, "");
 
-  const [connectionList, logs, recentDeal] = await Promise.all([
+  const [connectionList, logs, recentDeal, queue] = await Promise.all([
     Promise.all(SOCIAL_PLATFORMS.map((p) => getPublicSocialConnection(p))),
     prisma.socialPostLog.findMany({
       orderBy: { createdAt: "desc" },
@@ -41,9 +42,12 @@ export default async function AutomationPage() {
         dealPost: true,
         description: true,
         affiliateUrl: true,
+        marketplace: true,
+        isDemo: true,
         category: { select: { name: true } },
       },
     }),
+    prisma.socialDelivery.findMany({ where: { status: { notIn: ["published", "cancelled"] } }, orderBy: { createdAt: "desc" }, take: 30, include: { product: { select: { title: true } } } }),
   ]);
 
   const connections = Object.fromEntries(
@@ -64,6 +68,8 @@ export default async function AutomationPage() {
   const previewDeal: ShareDeal | null = recentDeal
     ? {
         id: recentDeal.id,
+        marketplace: recentDeal.marketplace,
+        isDemo: recentDeal.isDemo,
         title: recentDeal.title,
         slug: recentDeal.slug,
         categoryName: recentDeal.category.name,
@@ -88,15 +94,15 @@ export default async function AutomationPage() {
           Social Automation
         </h1>
         <p className="mt-1 text-sm text-muted-fg max-w-2xl">
-          A deal is posted once when it first becomes Published. Draft, expired,
-          and archived deals are not posted. Live auto-post: Facebook, Threads,
-          Telegram (with daily rate caps). Tracked{" "}
-          <code className="text-xs bg-card-muted px-1 rounded">/go?src=</code>{" "}
-          links are used for click attribution.
+          New deals are queued for connected channels. Draft, sample, expired,
+          and archived deals are never posted. Connect Facebook, Threads, Telegram,
+          Instagram or Pinterest. Each channel has a daily limit and a visible delivery history.
         </p>
       </header>
 
       <AutomationWorkspace
+        publishingNotice={socialOriginError(siteUrl)}
+        queue={queue.map((job) => ({ id: job.id, title: job.product.title, platform: job.platform, status: job.status, lastError: job.lastError }))}
         connections={connections}
         activity={activity}
         previewDeal={previewDeal}

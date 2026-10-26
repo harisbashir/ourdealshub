@@ -104,18 +104,18 @@ export async function getClickAnalytics(
     }),
     ownerId
       ? prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
-          SELECT DATE_TRUNC('day', ce."createdAt") AS day, COUNT(*)::bigint AS count
-          FROM "ClickEvent" ce
-          INNER JOIN "Product" p ON p.id = ce."productId"
-          WHERE ce."createdAt" >= ${since} AND p."createdById" = ${ownerId}
-          GROUP BY DATE_TRUNC('day', ce."createdAt")
+          SELECT DATE(ce.\`createdAt\`) AS day, COUNT(*) AS count
+          FROM \`ClickEvent\` ce
+          INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+          WHERE ce.\`createdAt\` >= ${since} AND p.\`createdById\` = ${ownerId}
+          GROUP BY DATE(ce.\`createdAt\`)
           ORDER BY day ASC
         `
       : prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
-          SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::bigint AS count
-          FROM "ClickEvent"
-          WHERE "createdAt" >= ${since}
-          GROUP BY DATE_TRUNC('day', "createdAt")
+          SELECT DATE(\`createdAt\`) AS day, COUNT(*) AS count
+          FROM \`ClickEvent\`
+          WHERE \`createdAt\` >= ${since}
+          GROUP BY DATE(\`createdAt\`)
           ORDER BY day ASC
         `,
     prisma.clickEvent.groupBy({
@@ -127,21 +127,21 @@ export async function getClickAnalytics(
     }),
     ownerId
       ? prisma.$queryRaw<Array<{ id: string; name: string; count: bigint }>>`
-          SELECT c.id, c.name, COUNT(ce.id)::bigint AS count
-          FROM "ClickEvent" ce
-          INNER JOIN "Product" p ON p.id = ce."productId"
-          INNER JOIN "Category" c ON c.id = p."categoryId"
-          WHERE ce."createdAt" >= ${since} AND p."createdById" = ${ownerId}
+          SELECT c.id, c.name, COUNT(ce.id) AS count
+          FROM \`ClickEvent\` ce
+          INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+          INNER JOIN \`Category\` c ON c.id = p.\`categoryId\`
+          WHERE ce.\`createdAt\` >= ${since} AND p.\`createdById\` = ${ownerId}
           GROUP BY c.id, c.name
           ORDER BY count DESC
           LIMIT 8
         `
       : prisma.$queryRaw<Array<{ id: string; name: string; count: bigint }>>`
-          SELECT c.id, c.name, COUNT(ce.id)::bigint AS count
-          FROM "ClickEvent" ce
-          INNER JOIN "Product" p ON p.id = ce."productId"
-          INNER JOIN "Category" c ON c.id = p."categoryId"
-          WHERE ce."createdAt" >= ${since}
+          SELECT c.id, c.name, COUNT(ce.id) AS count
+          FROM \`ClickEvent\` ce
+          INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+          INNER JOIN \`Category\` c ON c.id = p.\`categoryId\`
+          WHERE ce.\`createdAt\` >= ${since}
           GROUP BY c.id, c.name
           ORDER BY count DESC
           LIMIT 8
@@ -155,11 +155,11 @@ export async function getClickAnalytics(
             count: bigint;
           }>
         >`
-          SELECT a.id, a.name, a.email, COUNT(ce.id)::bigint AS count
-          FROM "ClickEvent" ce
-          INNER JOIN "Product" p ON p.id = ce."productId"
-          LEFT JOIN "AdminUser" a ON a.id = p."createdById"
-          WHERE ce."createdAt" >= ${since} AND p."createdById" = ${ownerId}
+          SELECT a.id, a.name, a.email, COUNT(ce.id) AS count
+          FROM \`ClickEvent\` ce
+          INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+          LEFT JOIN \`AdminUser\` a ON a.id = p.\`createdById\`
+          WHERE ce.\`createdAt\` >= ${since} AND p.\`createdById\` = ${ownerId}
           GROUP BY a.id, a.name, a.email
           ORDER BY count DESC
           LIMIT 8
@@ -172,11 +172,11 @@ export async function getClickAnalytics(
             count: bigint;
           }>
         >`
-          SELECT a.id, a.name, a.email, COUNT(ce.id)::bigint AS count
-          FROM "ClickEvent" ce
-          INNER JOIN "Product" p ON p.id = ce."productId"
-          LEFT JOIN "AdminUser" a ON a.id = p."createdById"
-          WHERE ce."createdAt" >= ${since}
+          SELECT a.id, a.name, a.email, COUNT(ce.id) AS count
+          FROM \`ClickEvent\` ce
+          INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+          LEFT JOIN \`AdminUser\` a ON a.id = p.\`createdById\`
+          WHERE ce.\`createdAt\` >= ${since}
           GROUP BY a.id, a.name, a.email
           ORDER BY count DESC
           LIMIT 8
@@ -199,18 +199,18 @@ export async function getClickAnalytics(
     }),
     ownerId
       ? prisma.$queryRaw<Array<{ marketplace: string; count: bigint }>>`
-          SELECT COALESCE(p.marketplace, 'US') AS marketplace, COUNT(ce.id)::bigint AS count
-          FROM "ClickEvent" ce
-          INNER JOIN "Product" p ON p.id = ce."productId"
-          WHERE ce."createdAt" >= ${since} AND p."createdById" = ${ownerId}
+          SELECT COALESCE(p.marketplace, 'US') AS marketplace, COUNT(ce.id) AS count
+          FROM \`ClickEvent\` ce
+          INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+          WHERE ce.\`createdAt\` >= ${since} AND p.\`createdById\` = ${ownerId}
           GROUP BY COALESCE(p.marketplace, 'US')
           ORDER BY count DESC
         `
       : prisma.$queryRaw<Array<{ marketplace: string; count: bigint }>>`
-          SELECT COALESCE(p.marketplace, 'US') AS marketplace, COUNT(ce.id)::bigint AS count
-          FROM "ClickEvent" ce
-          INNER JOIN "Product" p ON p.id = ce."productId"
-          WHERE ce."createdAt" >= ${since}
+          SELECT COALESCE(p.marketplace, 'US') AS marketplace, COUNT(ce.id) AS count
+          FROM \`ClickEvent\` ce
+          INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+          WHERE ce.\`createdAt\` >= ${since}
           GROUP BY COALESCE(p.marketplace, 'US')
           ORDER BY count DESC
         `,
@@ -279,7 +279,7 @@ export async function getClickAnalytics(
   const byMarketplace: NamedCount[] = byMarketplaceRaw.map((r) => ({
     id: r.marketplace || "US",
     name:
-      r.marketplace === "UK"
+      r.marketplace === "CA" ? "Amazon.ca (Canada)" : r.marketplace === "UK"
         ? "Amazon.co.uk (UK)"
         : "Amazon.com (US)",
     count: Number(r.count),

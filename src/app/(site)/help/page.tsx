@@ -26,7 +26,7 @@ const GETTING_AROUND: HelpItem[] = [
     ),
   },
   {
-    q: "What do All, US and UK mean?",
+    q: "What do All, US, UK and Canada mean?",
     a: (
       <p>
         Each pick opens in one Amazon store: <strong>US</strong> is Amazon.com and{" "}
@@ -70,7 +70,7 @@ const GETTING_AROUND: HelpItem[] = [
 
 const PICKS: HelpItem[] = [
   {
-    q: "What happens when I tap “View on Amazon”?",
+    q: "What happens when I tap “Get deal on Amazon”?",
     a: (
       <p>
         Amazon opens in a new tab on that product&apos;s page, where you can see the current price,
@@ -85,7 +85,8 @@ const PICKS: HelpItem[] = [
       <p>
         Amazon prices change often, sometimes several times a day, and Amazon&apos;s rules only
         allow prices that come straight from its live data. To make sure you never see an
-        out-of-date price, the current price is shown on Amazon.
+        out-of-date price, the current price is shown on Amazon. Savings badges use verified
+        Amazon data and disappear when it expires. Sample listings show illustrative discounts only.
       </p>
     ),
   },

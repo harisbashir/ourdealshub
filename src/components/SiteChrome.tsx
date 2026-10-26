@@ -52,11 +52,11 @@ export function SiteChrome() {
         <div className="site-container flex h-14 items-center gap-2 lg:gap-4">
           <Link
             href="/"
-            className="-ml-1 flex shrink-0 items-center gap-2 rounded-xl px-1 py-1"
+            className="-ml-1 flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-1 py-1"
             aria-label="OurDealsHub home"
           >
             <BrandMark className="h-8 w-8" />
-            <span className="text-[17px] font-bold tracking-tight text-foreground max-[379px]:sr-only">
+            <span className="text-[17px] font-bold tracking-tight text-foreground max-[479px]:sr-only">
               OurDealsHub
             </span>
           </Link>

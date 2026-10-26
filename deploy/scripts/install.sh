@@ -68,7 +68,7 @@ else
   set_env AUTH_SECRET "$AUTH"
   set_env NEXTAUTH_SECRET "$AUTH"
   set_env CRON_SECRET "$(openssl rand -hex 32)"
-  set_env POSTGRES_PASSWORD "$(openssl rand -hex 24)"
+  set_env MARIADB_PASSWORD "$(openssl rand -hex 24)"
   set_env ADMIN_EMAIL "$ADMIN_EMAIL"
   set_env ADMIN_PASSWORD "$ADMIN_PASSWORD"
   set_env CONTACT_EMAIL "hello@$DOMAIN"
@@ -77,7 +77,7 @@ else
   say ".env written (secrets generated, file is private to you)"
 fi
 
-for key in SITE_DOMAIN NEXT_PUBLIC_SITE_URL AUTH_SECRET CRON_SECRET POSTGRES_PASSWORD; do
+for key in SITE_DOMAIN NEXT_PUBLIC_SITE_URL AUTH_SECRET CRON_SECRET MARIADB_PASSWORD; do
   [[ -n "$(env_get "$key")" ]] || die "$key is empty in .env. Fill it in (see docs/DEPLOY.md) and re-run."
 done
 

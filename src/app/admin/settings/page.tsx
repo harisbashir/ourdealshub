@@ -1,3 +1,6 @@
+import { MailSettingsForm } from "@/components/admin/MailSettingsForm";
+import { getMailAdminData } from "@/lib/mail-settings";
+import { DemoCatalogControl } from "@/components/admin/DemoCatalogControl";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/admin-auth";
@@ -24,14 +27,16 @@ export const metadata = { title: "Settings" };
 const SECTIONS = [
   ["#appearance", "Appearance"],
   ["#api-keys", "API Keys"],
+  ["#email", "Email"],
   ["#publishing", "Publishing"],
   ["#ai-prompt", "AI Prompt"],
   ["#go-live", "Go-Live"],
+  ["#samples", "Samples"],
 ];
 
 export default async function AdminSettingsPage() {
   await requireSuperAdmin();
-  const [settings, categories, readiness, apiViews] = await Promise.all([
+  const [settings, categories, readiness, apiViews, mailData] = await Promise.all([
     getSiteSettings(),
     prisma.category.findMany({
       where: { parentId: null, NOT: { slug: "trending" } },
@@ -40,6 +45,7 @@ export default async function AdminSettingsPage() {
     }),
     getGoLiveReadiness(),
     describeApiConfig(),
+    getMailAdminData(),
   ]);
   const usingDefaultPrompt =
     settings.geminiPromptTemplate.trim() === getDefaultGeminiPrompt().trim();
@@ -56,7 +62,7 @@ export default async function AdminSettingsPage() {
           <a
             key={href}
             href={href}
-            className="pressable inline-flex h-10 shrink-0 items-center rounded-full bg-card px-4 text-[15px] font-medium text-foreground ring-1 ring-border hover:bg-card-muted"
+            className="pressable inline-flex h-11 shrink-0 items-center rounded-full bg-card px-4 text-[15px] font-medium text-foreground ring-1 ring-border hover:bg-card-muted"
           >
             {label}
           </a>
@@ -64,6 +70,10 @@ export default async function AdminSettingsPage() {
       </nav>
 
       <div className="space-y-6">
+        <AdminCard id="samples">
+          <SectionHeader title="Sample catalog" description="Preview the storefront before adding real deals." />
+          <DemoCatalogControl count={await prisma.product.count({ where: { isDemo: true } })} />
+        </AdminCard>
         <AdminCard id="appearance">
           <SectionHeader
             title="Colour Theme"
@@ -78,6 +88,11 @@ export default async function AdminSettingsPage() {
             description="Connect Gemini and the Amazon Creators API. Only Super Admins can see or change these."
           />
           <ApiKeysForm views={apiViews} />
+        </AdminCard>
+
+        <AdminCard id="email">
+          <SectionHeader title="Email notifications" description="Use your own Gmail, Outlook or SMTP account for administrator updates. Keep alerts paused while setting up the connection." />
+          <MailSettingsForm {...mailData} />
         </AdminCard>
 
         <form action={updateSiteSettings} className="space-y-6">

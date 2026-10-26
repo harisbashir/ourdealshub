@@ -13,11 +13,12 @@ export const metadata = { title: "Add Deal — Admin" };
 
 export default async function NewProductPage() {
   const admin = await requireProductAccess();
-  const [categories, settings, trackingId, trackingIdUk] = await Promise.all([
+  const [categories, settings, trackingId, trackingIdUk, trackingIdCa] = await Promise.all([
     listCategoryOptions(),
     getSiteSettings(),
     getAdminTrackingId(admin.id, "US"),
     getAdminTrackingId(admin.id, "UK"),
+    getAdminTrackingId(admin.id, "CA"),
   ]);
 
   return (
@@ -25,7 +26,7 @@ export default async function NewProductPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Add product</h1>
         <p className="text-sm text-muted mt-1">
-          Pick US or UK, then import from Amazon URL/ASIN (uses the matching
+          Pick US, UK or Canada, then import from Amazon URL/ASIN (uses the matching
           Tracking ID), or paste a deal manually.{" "}
           <Link href="/admin/settings" className="text-brand hover:underline">
             Workflow settings
@@ -39,6 +40,8 @@ export default async function NewProductPage() {
         autoPublish={settings.autoPublish}
         hasTrackingId={Boolean(trackingId)}
         trackingIdLabel={trackingId}
+        hasTrackingIdCa={Boolean(trackingIdCa)}
+        trackingIdLabelCa={trackingIdCa}
         hasTrackingIdUk={Boolean(trackingIdUk)}
         trackingIdLabelUk={trackingIdUk}
         isSuperAdminUser={isSuperAdmin(admin)}

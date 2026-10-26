@@ -34,8 +34,9 @@ export default async function HomePage({ searchParams }: Props) {
   ]);
 
   const recentCards = recent.map(
-    ({ id, title, slug, imageUrl, affiliateUrl, marketplace }) => ({
+    ({ id, title, slug, imageUrl, affiliateUrl, marketplace, isDemo }) => ({
       id,
+      isDemo,
       title,
       slug,
       imageUrl,
@@ -49,6 +50,7 @@ export default async function HomePage({ searchParams }: Props) {
     <>
       <h1 className="sr-only">OurDealsHub — curated Amazon picks</h1>
 
+      {recentCards.some((p) => p.isDemo) && <aside className="site-container pt-6"><div className="rounded-2xl bg-card p-4 ring-1 ring-border-subtle"><p className="text-[15px] font-semibold text-foreground">Take a look around</p><p className="mt-1 text-[15px] leading-relaxed text-muted">Sample picks help you explore all three stores. They are marked as previews and have no shopping links.</p></div></aside>}
       {!hasPicks ? (
         <section className="site-container pt-8">
           <div className="rounded-2xl bg-card px-6 py-14 text-center ring-1 ring-border-subtle">

@@ -26,7 +26,7 @@ export function CopyTextButton({
     <button
       type="button"
       onClick={onCopy}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted hover:border-brand hover:text-brand"
+      className="pressable inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted hover:border-brand hover:text-brand"
     >
       {done ? (
         <Check className="h-3.5 w-3.5 text-success" />

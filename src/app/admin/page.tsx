@@ -166,7 +166,7 @@ export default async function AdminDashboard() {
                       {p.title}
                     </Link>
                     <p className="mt-0.5 truncate text-[13px] text-muted">
-                      {p.marketplace === "UK" ? "UK" : "US"} · {p.category.name} · {p.clickCount}{" "}
+                      {p.marketplace || "US"} · {p.category.name} · {p.clickCount}{" "}
                       {p.clickCount === 1 ? "click" : "clicks"}
                       {superAdmin && (p.createdBy?.name || p.createdBy?.email)
                         ? ` · ${p.createdBy?.name || p.createdBy?.email}`

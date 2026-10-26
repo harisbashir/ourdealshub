@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getAccentTheme } from "@/lib/settings";
 
 /**
- * Render per request. Every public page reads Postgres (nav categories at minimum),
+ * Render per request. Every public page reads MariaDB (nav categories at minimum),
  * so build-time prerendering (ISR) would require a live DB during `next build`.
  */
 export const dynamic = "force-dynamic";

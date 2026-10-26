@@ -9,6 +9,13 @@ import {
 export const MISSING_TRACKING_ID_MESSAGE =
   "Your Amazon Tracking ID has not been configured. Please contact the Super Admin.";
 
+export const MISSING_CA_TRACKING_ID_MESSAGE =
+  "Your Canada Amazon Tracking ID has not been configured. Add it under Admins → Edit.";
+
+export function missingTrackingIdMessage(market: string) {
+  return market === "CA" ? MISSING_CA_TRACKING_ID_MESSAGE : market === "UK" ? MISSING_UK_TRACKING_ID_MESSAGE : MISSING_TRACKING_ID_MESSAGE;
+}
+
 export const MISSING_UK_TRACKING_ID_MESSAGE =
   "Your UK Amazon Tracking ID has not been configured. Add it under Admins → Edit.";
 
@@ -26,9 +33,12 @@ export async function getAdminTrackingId(
     select: {
       amazonTrackingId: true,
       amazonTrackingIdUk: true,
+      amazonTrackingIdCa: true,
       role: true,
     },
   });
+
+  if (market === "CA") return normalizeTrackingId(row?.amazonTrackingIdCa);
 
   if (market === "UK") {
     return normalizeTrackingId(row?.amazonTrackingIdUk);
@@ -51,9 +61,7 @@ export async function requireAdminTrackingId(
   const tag = await getAdminTrackingId(adminId, market);
   if (!tag) {
     throw new Error(
-      market === "UK"
-        ? MISSING_UK_TRACKING_ID_MESSAGE
-        : MISSING_TRACKING_ID_MESSAGE
+      missingTrackingIdMessage(market)
     );
   }
   return tag;

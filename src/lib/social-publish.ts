@@ -1,3 +1,7 @@
+import { recordSystemEvent } from "@/lib/system-events";
+import { publicProductWhere } from "@/lib/product-query";
+import { LIVE_SOCIAL_PLATFORMS } from "@/lib/social-connections";
+import { publishInstagram, publishPinterest, socialOriginError, SocialApiError } from "@/lib/social-api";
 import { prisma } from "@/lib/prisma";
 import { buildPlatformPost } from "@/lib/social-posting-styles";
 import {
@@ -29,7 +33,7 @@ function siteUrl(): string {
 
 async function loadDeal(productId: string) {
   return prisma.product.findFirst({
-    where: { id: productId, deletedAt: null, isPublished: true },
+    where: publicProductWhere({ id: productId, isDemo: false }),
     select: {
       id: true,
       title: true,
@@ -54,7 +58,7 @@ async function postFacebook(opts: {
   token: string;
   message: string;
   link: string;
-}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+}): Promise<{ ok: true; id: string } | { ok: false; error: string; uncertain?: boolean }> {
   try {
     const url = new URL(
       `https://graph.facebook.com/v21.0/${encodeURIComponent(opts.pageId)}/feed`
@@ -67,6 +71,7 @@ async function postFacebook(opts: {
         link: opts.link,
         access_token: opts.token,
       }),
+      signal: AbortSignal.timeout(15_000),
       cache: "no-store",
     });
     const data = (await res.json()) as {
@@ -77,13 +82,14 @@ async function postFacebook(opts: {
       return {
         ok: false,
         error: data.error?.message || `Facebook HTTP ${res.status}`,
+        uncertain: res.status >= 500,
       };
     }
     return { ok: true, id: data.id || "" };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Facebook request failed",
+      error: "Facebook did not confirm the post. Check the Page before retrying.", uncertain: true,
     };
   }
 }
@@ -92,7 +98,7 @@ async function postThreads(opts: {
   userId: string;
   token: string;
   text: string;
-}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+}): Promise<{ ok: true; id: string } | { ok: false; error: string; uncertain?: boolean }> {
   try {
     // Params go in a form body, not the query string, so the access token
     // never appears in URLs / proxy logs and long text can't hit URL limits.
@@ -105,7 +111,8 @@ async function postThreads(opts: {
           text: opts.text,
           access_token: opts.token,
         }),
-        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      cache: "no-store",
       }
     );
     const created = (await createRes.json()) as {
@@ -127,7 +134,8 @@ async function postThreads(opts: {
           creation_id: created.id,
           access_token: opts.token,
         }),
-        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      cache: "no-store",
       }
     );
     const published = (await pubRes.json()) as {
@@ -139,13 +147,14 @@ async function postThreads(opts: {
         ok: false,
         error:
           published.error?.message || `Threads publish HTTP ${pubRes.status}`,
+        uncertain: pubRes.status >= 500,
       };
     }
     return { ok: true, id: published.id || created.id };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Threads request failed",
+      error: "Threads did not confirm the post. Check the account before retrying.", uncertain: true,
     };
   }
 }
@@ -155,7 +164,7 @@ async function postTelegram(opts: {
   chatId: string;
   token: string;
   text: string;
-}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+}): Promise<{ ok: true; id: string } | { ok: false; error: string; uncertain?: boolean }> {
   try {
     const res = await fetch(
       `https://api.telegram.org/bot${opts.token}/sendMessage`,
@@ -167,7 +176,8 @@ async function postTelegram(opts: {
           text: opts.text,
           disable_web_page_preview: false,
         }),
-        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      cache: "no-store",
       }
     );
     const data = (await res.json()) as {
@@ -176,177 +186,92 @@ async function postTelegram(opts: {
       description?: string;
     };
     if (!res.ok || !data.ok) {
-      return { ok: false, error: data.description || `Telegram HTTP ${res.status}` };
+      return { ok: false, error: data.description || `Telegram HTTP ${res.status}`, uncertain: res.status >= 500 };
     }
     return { ok: true, id: String(data.result?.message_id || "") };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Telegram request failed",
+      error: "Telegram did not confirm the message. Check the channel before retrying.", uncertain: true,
     };
   }
 }
 
-/**
- * After a deal becomes published, push to connected channels (FB / Threads / Telegram).
- * Failures are logged — never throw to the publish UI path.
- */
-export async function autoPostPublishedDeal(
-  productId: string
-): Promise<AutoPostResult[]> {
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "default" },
-  });
-  if (settings && settings.socialAutoPost === false) {
-    return [];
-  }
-
-  const deal = await loadDeal(productId);
-  if (!deal) return [];
-
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const recent = await prisma.socialPostLog.findMany({
-    where: {
-      productId,
-      status: "ok",
-      createdAt: { gte: since },
-    },
-    select: { platform: true },
-  });
-  const already = new Set(recent.map((r) => r.platform));
-
-  const connections = await prisma.socialConnection.findMany({
-    where: {
-      isActive: true,
-      platform: { in: ["facebook", "threads", "telegram"] },
-    },
-  });
-
+/** Queue each deal/channel once. Publishing happens outside web requests. */
+export async function autoPostPublishedDeal(productId: string): Promise<AutoPostResult[]> {
+  const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
+  if (settings?.socialAutoPost === false || !(await loadDeal(productId))) return [];
+  const connections = await prisma.socialConnection.findMany({ where: { isActive: true, platform: { in: LIVE_SOCIAL_PLATFORMS } } });
   const results: AutoPostResult[] = [];
-  const origin = siteUrl();
-  let postedInBatch = 0;
-
-  for (const conn of connections) {
-    if (already.has(conn.platform)) continue;
-
-    const platform = conn.platform as SocialPlatform;
-
-    // Skip expired tokens
-    if (conn.tokenExpiresAt && conn.tokenExpiresAt.getTime() < Date.now()) {
-      const err = "Access token expired — reconnect in Automation.";
-      await prisma.socialConnection.update({
-        where: { platform: conn.platform },
-        data: { lastError: err, isActive: false },
-      });
-      await prisma.socialPostLog.create({
-        data: {
-          productId,
-          platform,
-          status: "error",
-          error: err,
-        },
-      });
-      results.push({ platform, ok: false, error: err });
-      continue;
-    }
-
-    const cap = await isOverDailyCap(platform);
-    if (cap.over) {
-      const err = `Daily cap reached (${cap.count}/${cap.cap}) — try tomorrow.`;
-      await prisma.socialPostLog.create({
-        data: {
-          productId,
-          platform,
-          status: "error",
-          error: err,
-        },
-      });
-      results.push({ platform, ok: false, skipped: true, error: err });
-      continue;
-    }
-
-    if (postedInBatch > 0) {
-      await sleep(SOCIAL_POST_GAP_MS);
-    }
-
-    const campaign = campaignForPlatform(platform);
-    const goUrl = buildTrackedGoUrl(origin, deal.slug, campaign);
-    const dealPageUrl = `${origin}/deal/${deal.slug}`;
-    // Amazon Special Link for platforms that allow affiliate URLs.
-    // Site URLs (deal/go) are for Instagram-style channels where Amazon links break.
-    const amazonSpecialLink = deal.affiliateUrl;
-    const post = buildPlatformPost(platform, {
-      title: deal.title,
-      geminiText: (deal.dealPost || deal.description || deal.title).trim(),
-      affiliateUrl: amazonSpecialLink,
-      dealUrl: dealPageUrl,
-      goUrl,
-      categoryName: deal.category.name,
-      marketplace: deal.marketplace,
+  for (const connection of connections) {
+    // Preserve success history from before the queue was introduced.
+    if (await prisma.socialPostLog.findFirst({ where: { productId, platform: connection.platform, status: "ok" } })) continue;
+    await prisma.socialDelivery.upsert({
+      where: { productId_platform: { productId, platform: connection.platform } },
+      create: { productId, platform: connection.platform }, update: {},
     });
-
-    let outcome: { ok: true; id: string } | { ok: false; error: string };
-
-    if (platform === "facebook") {
-      outcome = await postFacebook({
-        pageId: conn.pageId,
-        token: openSecret(conn.accessToken),
-        message: post.caption,
-        // Graph `link` must be the Special Link — do not cloak behind /go
-        link: post.linkAttachment || amazonSpecialLink,
-      });
-    } else if (platform === "threads") {
-      outcome = await postThreads({
-        userId: conn.pageId,
-        token: openSecret(conn.accessToken),
-        text: post.caption,
-      });
-    } else if (platform === "telegram") {
-      outcome = await postTelegram({
-        chatId: conn.pageId,
-        token: openSecret(conn.accessToken),
-        text: post.caption,
-      });
-    } else {
-      continue;
-    }
-
-    postedInBatch++;
-
-    await prisma.socialPostLog.create({
-      data: {
-        productId,
-        platform,
-        status: outcome.ok ? "ok" : "error",
-        externalId: outcome.ok ? outcome.id : null,
-        error: outcome.ok ? null : outcome.error,
-      },
-    });
-
-    if (!outcome.ok) {
-      await prisma.socialConnection.update({
-        where: { platform: conn.platform },
-        data: { lastError: outcome.error },
-      });
-      await reportError(outcome.error, {
-        platform,
-        productId,
-        source: "autoPostPublishedDeal",
-      });
-    } else {
-      await prisma.socialConnection.update({
-        where: { platform: conn.platform },
-        data: { lastError: null, lastPostAt: new Date() },
-      });
-    }
-
-    results.push({
-      platform,
-      ok: outcome.ok,
-      externalId: outcome.ok ? outcome.id : undefined,
-      error: outcome.ok ? undefined : outcome.error,
-    });
+    results.push({ platform: connection.platform, ok: true, skipped: true });
   }
-
   return results;
+}
+
+/** One finite batch. Atomic claims allow overlapping schedules safely. */
+export async function processSocialQueue(limit = 10) {
+  // A process killed after sending a request cannot safely be retried blindly.
+  await prisma.socialDelivery.updateMany({
+    where: { status: "processing", updatedAt: { lt: new Date(Date.now() - 30 * 60_000) } },
+    data: { status: "uncertain", lastError: "Delivery was interrupted. Check the platform before trying again." },
+  });
+  const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
+  if (settings?.socialAutoPost === false) return { processed: 0, paused: true };
+  const jobs = await prisma.socialDelivery.findMany({ where: { status: "queued" }, orderBy: { createdAt: "asc" }, take: Math.min(30, limit) });
+  let processed = 0;
+  const deadline = Date.now() + 90_000;
+  for (const job of jobs) {
+    if (Date.now() >= deadline) break;
+    const conn = await prisma.socialConnection.findUnique({ where: { platform: job.platform } });
+    const deal = await loadDeal(job.productId);
+    if (!conn?.isActive || !deal) {
+      await prisma.socialDelivery.updateMany({ where: { id: job.id, status: "queued" }, data: { status: "cancelled", lastError: "Connection paused or deal no longer eligible." } });
+      continue;
+    }
+    const platform = job.platform as SocialPlatform;
+    if ((await isOverDailyCap(platform)).over) continue;
+    const claimed = await prisma.socialDelivery.updateMany({ where: { id: job.id, status: "queued" }, data: { status: "processing", attempts: { increment: 1 }, lastError: null } });
+    if (!claimed.count) continue;
+    let outcome: { ok: true; id: string } | { ok: false; error: string; uncertain?: boolean };
+    try {
+      if (conn.tokenExpiresAt && conn.tokenExpiresAt.getTime() <= Date.now()) throw new Error("Token expired. Reconnect this channel in Automation.");
+      const origin = siteUrl();
+      if (platform === "instagram" || platform === "pinterest") {
+        const error = socialOriginError(origin);
+        if (error) throw new Error(error);
+      }
+      const token = openSecret(conn.accessToken);
+      const post = buildPlatformPost(platform, {
+        title: deal.title, geminiText: (deal.dealPost || deal.description || deal.title).trim(), affiliateUrl: deal.affiliateUrl,
+        dealUrl: `${origin}/deal/${deal.slug}`, goUrl: buildTrackedGoUrl(origin, deal.slug, campaignForPlatform(platform)),
+        categoryName: deal.category.name, marketplace: deal.marketplace,
+      });
+      const imageUrl = `${origin}/api/social-image/${encodeURIComponent(deal.slug)}`;
+      if (platform === "facebook") outcome = await postFacebook({ pageId: conn.pageId, token, message: post.caption, link: post.linkAttachment || deal.affiliateUrl });
+      else if (platform === "threads") outcome = await postThreads({ userId: conn.pageId, token, text: post.caption });
+      else if (platform === "telegram") outcome = await postTelegram({ chatId: conn.pageId, token, text: post.caption });
+      else if (platform === "instagram") outcome = { ok: true, id: await publishInstagram({ accountId: conn.pageId, token, caption: post.caption, imageUrl }) };
+      else if (platform === "pinterest") outcome = { ok: true, id: await publishPinterest({ boardId: conn.pageId, token, title: post.title || deal.title, description: post.caption, link: post.linkUrl, imageUrl }) };
+      else throw new Error("Unsupported social channel.");
+      if (outcome.ok && !outcome.id) outcome = { ok: false, error: "The platform did not confirm a post ID. Check it before retrying.", uncertain: true };
+    } catch (error) {
+      outcome = { ok: false, error: error instanceof Error ? error.message : "Delivery failed.", uncertain: error instanceof SocialApiError && error.uncertain };
+    }
+    const status = outcome.ok ? "published" : outcome.uncertain ? "uncertain" : "failed";
+    await prisma.socialDelivery.update({ where: { id: job.id }, data: { status, externalId: outcome.ok ? outcome.id : null, lastError: outcome.ok ? null : outcome.error } });
+    await prisma.socialPostLog.create({ data: { productId: job.productId, platform, status: outcome.ok ? "ok" : status === "uncertain" ? "uncertain" : "error", externalId: outcome.ok ? outcome.id : null, error: outcome.ok ? null : outcome.error } });
+    await prisma.socialConnection.update({ where: { platform }, data: { lastError: outcome.ok ? null : outcome.error, ...(outcome.ok ? { lastPostAt: new Date() } : {}) } });
+    await recordSystemEvent({ category: "social", title: outcome.ok ? `${platform} post published` : `${platform} delivery needs attention`, level: outcome.ok ? "info" : "error", detail: outcome.ok ? "The platform confirmed the post." : "Review the delivery result in Automation. Uncertain results are never retried automatically.", adminPath: "/admin/automation" });
+    if (!outcome.ok) await reportError(outcome.error, { platform, productId: job.productId, source: "socialQueue" });
+    processed++;
+    if (processed < jobs.length) await sleep(SOCIAL_POST_GAP_MS);
+  }
+  return { processed, paused: false };
 }

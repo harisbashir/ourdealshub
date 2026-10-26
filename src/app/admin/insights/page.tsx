@@ -189,7 +189,7 @@ export default async function InsightsPage({ searchParams }: Props) {
                     <span
                       className="shrink-0 rounded-md bg-card-muted px-1.5 py-0.5 text-xs font-semibold text-foreground ring-1 ring-border"
                     >
-                      {p.marketplace === "UK" ? "UK" : "US"}
+                      {p.marketplace || "US"}
                     </span>
                     <Link
                       href={`/admin/analytics/product/${p.id}`}
@@ -218,7 +218,7 @@ export default async function InsightsPage({ searchParams }: Props) {
                   className="flex items-center justify-between gap-2 py-2"
                 >
                   <span className="text-xs font-medium text-foreground">
-                    {m.marketplace === "UK"
+                    {m.marketplace === "CA" ? "Amazon.ca (Canada)" : m.marketplace === "UK"
                       ? "Amazon.co.uk (UK)"
                       : "Amazon.com (US)"}
                   </span>

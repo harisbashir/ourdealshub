@@ -85,9 +85,9 @@ export async function getOpsInsights(days = 7): Promise<InsightsBundle> {
       select: { id: true, title: true, slug: true, scheduledAt: true },
     }),
     prisma.$queryRaw<Array<{ campaign: string | null; count: bigint }>>`
-      SELECT COALESCE(campaign, 'direct') AS campaign, COUNT(*)::bigint AS count
-      FROM "ClickEvent"
-      WHERE "createdAt" >= ${since}
+      SELECT COALESCE(campaign, 'direct') AS campaign, COUNT(*) AS count
+      FROM \`ClickEvent\`
+      WHERE \`createdAt\` >= ${since}
       GROUP BY COALESCE(campaign, 'direct')
       ORDER BY count DESC
       LIMIT 12
@@ -113,17 +113,17 @@ export async function getOpsInsights(days = 7): Promise<InsightsBundle> {
       },
     }),
     prisma.$queryRaw<Array<{ marketplace: string; count: bigint }>>`
-      SELECT COALESCE(p.marketplace, 'US') AS marketplace, COUNT(ce.id)::bigint AS count
-      FROM "ClickEvent" ce
-      INNER JOIN "Product" p ON p.id = ce."productId"
-      WHERE ce."createdAt" >= ${since}
+      SELECT COALESCE(p.marketplace, 'US') AS marketplace, COUNT(ce.id) AS count
+      FROM \`ClickEvent\` ce
+      INNER JOIN \`Product\` p ON p.id = ce.\`productId\`
+      WHERE ce.\`createdAt\` >= ${since}
       GROUP BY COALESCE(p.marketplace, 'US')
       ORDER BY count DESC
     `,
     prisma.$queryRaw<Array<{ marketplace: string; count: bigint }>>`
-      SELECT COALESCE(marketplace, 'US') AS marketplace, COUNT(*)::bigint AS count
-      FROM "Product"
-      WHERE "deletedAt" IS NULL AND "createdAt" >= ${since}
+      SELECT COALESCE(marketplace, 'US') AS marketplace, COUNT(*) AS count
+      FROM \`Product\`
+      WHERE \`deletedAt\` IS NULL AND \`createdAt\` >= ${since}
       GROUP BY COALESCE(marketplace, 'US')
       ORDER BY count DESC
     `,

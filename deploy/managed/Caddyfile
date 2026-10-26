@@ -1,0 +1,21 @@
+# Platform front end for the LAN VM. Hostinger supplies its own HTTPS/routing.
+{
+  servers {
+    timeouts {
+      write 120s
+    }
+  }
+}
+{$SITE_DOMAIN} {
+  tls {$CADDY_TLS}
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:3000 {
+    header_up X-Real-IP {remote_host}
+    transport http {
+      response_header_timeout 120s
+    }
+  }
+}
+:80 {
+  redir https://{$SITE_DOMAIN}{uri} permanent
+}

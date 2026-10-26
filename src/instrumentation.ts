@@ -11,3 +11,10 @@ export async function register() {
     });
   }
 }
+
+/** Next.js server rendering/route errors; request headers and bodies stay private. */
+export async function onRequestError(error: unknown) {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { reportError } = await import("./lib/error-report");
+  await reportError(error, { source: "serverRequest" });
+}

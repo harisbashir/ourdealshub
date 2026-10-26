@@ -1,22 +1,22 @@
+# Optional development database. Production managed hosting supplies MariaDB.
 services:
   db:
-    image: postgres:16-alpine
+    image: mariadb:10.11
     container_name: ourdealshub-db
     restart: unless-stopped
     ports:
-      # Only this PC can reach Postgres (safer than open to the whole network)
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:3306:3306"
     environment:
-      POSTGRES_USER: ourdealshub
-      POSTGRES_PASSWORD: ourdealshub
-      POSTGRES_DB: ourdealshub
+      MARIADB_ROOT_PASSWORD: local-root-only
+      MARIADB_USER: ourdealshub
+      MARIADB_PASSWORD: ourdealshub
+      MARIADB_DATABASE: ourdealshub
     volumes:
-      - ourdealshub_pgdata:/var/lib/postgresql/data
+      - ourdealshub_mariadb:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ourdealshub -d ourdealshub"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
-
 volumes:
-  ourdealshub_pgdata:
+  ourdealshub_mariadb:

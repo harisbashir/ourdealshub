@@ -23,6 +23,7 @@ const OPTIONS: { value: MarketPreference; label: string; title: string }[] = [
   { value: "", label: "All", title: "All Amazon stores" },
   { value: "US", label: "US", title: "Amazon.com (US)" },
   { value: "UK", label: "UK", title: "Amazon.co.uk (UK)" },
+  { value: "CA", label: "CA", title: "Amazon.ca (Canada)" },
 ];
 
 /**
@@ -37,10 +38,10 @@ export function MarketplaceFilter({ className = "" }: { className?: string }) {
   // remembered store so the switch never looks reset
   const active = useActiveMarket();
   const current: MarketPreference =
-    urlMarket === "US" || urlMarket === "UK" ? urlMarket : active;
+    urlMarket === "US" || urlMarket === "UK" || urlMarket === "CA" ? urlMarket : active;
 
   useEffect(() => {
-    if (urlMarket === "US" || urlMarket === "UK") {
+    if (urlMarket === "US" || urlMarket === "UK" || urlMarket === "CA") {
       writeMarketPreference(urlMarket);
     } else if (params.has("market")) {
       // market= / market=all → "All stores"
@@ -78,7 +79,7 @@ export function MarketplaceFilter({ className = "" }: { className?: string }) {
             title={o.title}
             aria-current={active ? "true" : undefined}
             onClick={() => writeMarketPreference(o.value)}
-            className={`pressable inline-flex h-8 min-w-11 items-center justify-center rounded-full px-2.5 text-[13px] font-semibold ${
+            className={`pressable inline-flex h-11 min-w-11 items-center justify-center rounded-full px-2.5 text-[13px] font-semibold ${
               active
                 ? "bg-card text-foreground shadow-sm ring-1 ring-border"
                 : "text-muted hover:text-foreground"
@@ -102,7 +103,7 @@ export function useActiveMarket(): MarketPreference {
     () => ""
   );
   const url = (params.get("market") || "").toUpperCase();
-  if (url === "US" || url === "UK") return url;
+  if (url === "US" || url === "UK" || url === "CA") return url;
   if (params.has("market")) return "";
-  return pref === "US" || pref === "UK" ? pref : "";
+  return pref === "US" || pref === "UK" || pref === "CA" ? pref : "";
 }

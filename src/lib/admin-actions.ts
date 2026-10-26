@@ -1,4 +1,6 @@
 "use server";
+import { discountFields } from "@/lib/amazon-discounts";
+import { createChangeNotifier } from "@/lib/system-events";
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
@@ -22,7 +24,7 @@ import {
   getAdminTrackingId,
   MISSING_TRACKING_ID_MESSAGE,
   trackingIdForProductUpdate,
-  MISSING_UK_TRACKING_ID_MESSAGE,
+  missingTrackingIdMessage,
 } from "@/lib/admin-tracking";
 import type { SessionAdmin } from "@/lib/permissions";
 import {
@@ -121,6 +123,7 @@ function parseProductFields(formData: FormData) {
   );
 
   return {
+    marketplace: parseMarketplace(String(formData.get("marketplace") || "US")),
     title,
     description,
     dealPost,
@@ -150,6 +153,7 @@ async function uniqueProductSlug(base: string, excludeId?: string) {
 }
 
 export async function createProduct(formData: FormData) {
+  const notifyChange = createChangeNotifier("content", "Product created", "/admin/products");
   const admin = await requireProductAccess();
 
   const limited = await rateLimitDurable(
@@ -173,13 +177,11 @@ export async function createProduct(formData: FormData) {
   }
 
   const marketplace =
-    detectMarketplaceFromInput(data.affiliateUrl) || "US";
+    detectMarketplaceFromInput(data.affiliateUrl) || data.marketplace;
   const trackingId = await getAdminTrackingId(admin.id, marketplace);
   if (!trackingId) {
     throw new Error(
-      marketplace === "UK"
-        ? MISSING_UK_TRACKING_ID_MESSAGE
-        : MISSING_TRACKING_ID_MESSAGE
+      missingTrackingIdMessage(marketplace)
     );
   }
 
@@ -226,22 +228,26 @@ export async function createProduct(formData: FormData) {
     });
   }
 
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
   redirect("/admin/products");
 }
 
 export async function updateProduct(id: string, formData: FormData) {
+  const notifyChange = createChangeNotifier("content", "Product updated", "/admin/products");
   const admin = await requireProductAccess();
   const data = parseProductFields(formData);
 
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product || product.deletedAt) throw new Error("Product not found");
   await assertCanManageProduct(admin, product);
+  if (product.isDemo) throw new Error("Samples are read-only previews. Remove them under Settings → Samples and add a real deal instead.");
 
   const marketplace =
     detectMarketplaceFromInput(data.affiliateUrl) ||
-    parseMarketplace(product.marketplace);
+    parseMarketplace(String(formData.get("marketplace") || product.marketplace));
   const trackingId = await trackingIdForProductUpdate(admin, {
     ...product,
     marketplace,
@@ -267,6 +273,7 @@ export async function updateProduct(id: string, formData: FormData) {
     where: { id },
     data: {
       ...data,
+      ...(normalized.asin !== product.asin || marketplace !== product.marketplace ? discountFields(null) : {}),
       asin: normalized.asin,
       affiliateUrl: normalized.affiliateUrl,
       couponCode: null,
@@ -287,13 +294,17 @@ export async function updateProduct(id: string, formData: FormData) {
     });
   }
 
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath(`/deal/${slug}`);
+  await notifyChange();
   revalidatePath("/admin/products");
   redirect("/admin/products");
 }
 
 export async function deleteProduct(id: string) {
+  const notifyChange = createChangeNotifier("content", "Product archived", "/admin/products");
   const admin = await requireProductAccess();
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product) throw new Error("Product not found");
@@ -303,11 +314,14 @@ export async function deleteProduct(id: string) {
     where: { id },
     data: { deletedAt: new Date(), isPublished: false },
   });
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
 }
 
 export async function restoreProduct(id: string) {
+  const notifyChange = createChangeNotifier("content", "Product restored", "/admin/products");
   const admin = await requireProductAccess();
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product) throw new Error("Product not found");
@@ -317,11 +331,14 @@ export async function restoreProduct(id: string) {
     where: { id },
     data: { deletedAt: null },
   });
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
 }
 
 export async function permanentlyDeleteProduct(id: string) {
+  const notifyChange = createChangeNotifier("content", "Product permanently deleted", "/admin/products");
   const admin = await requireProductAccess();
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product) throw new Error("Product not found");
@@ -333,7 +350,9 @@ export async function permanentlyDeleteProduct(id: string) {
   }
 
   await prisma.product.delete({ where: { id } });
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
 }
 
@@ -341,6 +360,7 @@ export async function refreshProductFromAmazon(id: string): Promise<{
   ok: boolean;
   message: string;
 }> {
+  const notifyChange = createChangeNotifier("content", "Product refreshed from Amazon", "/admin/products");
   const admin = await requireProductAccess();
 
   const product = await prisma.product.findUnique({ where: { id } });
@@ -348,6 +368,7 @@ export async function refreshProductFromAmazon(id: string): Promise<{
     return { ok: false, message: "Product not found." };
   }
   await assertCanManageProduct(admin, product);
+  if (product.isDemo) throw new Error("Samples are read-only previews. Remove them under Settings → Samples and add a real deal instead.");
 
   if (!(await isAmazonConfigured(product.marketplace))) {
     return {
@@ -384,15 +405,20 @@ export async function refreshProductFromAmazon(id: string): Promise<{
       where: { id },
       data: {
         imageUrl: result.imageUrl,
+        ...discountFields(result.discount),
         asin: result.asin,
         affiliateUrl: product.affiliateUrl || result.detailPageUrl,
         lastSyncedAt: new Date(),
       },
     });
-    revalidatePath("/");
-    revalidatePath(`/deal/${product.slug}`);
-    revalidatePath("/admin/products");
-    revalidatePath("/admin");
+    await notifyChange();
+  revalidatePath("/");
+    await notifyChange();
+  revalidatePath(`/deal/${product.slug}`);
+    await notifyChange();
+  revalidatePath("/admin/products");
+    await notifyChange();
+  revalidatePath("/admin");
     return {
       ok: true,
       message: "Synced image/ASIN from Amazon (title & description kept).",
@@ -409,6 +435,7 @@ export async function refreshRecentAmazonImages(): Promise<{
   message: string;
   updated: number;
 }> {
+  const notifyChange = createChangeNotifier("content", "Recent product images refreshed", "/admin/products");
   const admin = await requireProductAccess();
 
   if (!(await isAmazonConfigured())) {
@@ -455,6 +482,7 @@ export async function refreshRecentAmazonImages(): Promise<{
         where: { id: p.id },
         data: {
           imageUrl: result.imageUrl,
+        ...discountFields(result.discount),
           asin: result.asin,
           lastSyncedAt: new Date(),
         },
@@ -465,8 +493,11 @@ export async function refreshRecentAmazonImages(): Promise<{
     }
   }
 
+  await notifyChange();
   revalidatePath("/admin");
+  await notifyChange();
   revalidatePath("/admin/products");
+  await notifyChange();
   revalidatePath("/");
   return {
     ok: true,
@@ -476,6 +507,7 @@ export async function refreshRecentAmazonImages(): Promise<{
 }
 
 export async function createCategory(formData: FormData) {
+  const notifyChange = createChangeNotifier("content", "Category created", "/admin/categories");
   await requireSuperAdmin();
 
   const name = String(formData.get("name") || "").trim().slice(0, 120);
@@ -524,12 +556,15 @@ export async function createCategory(formData: FormData) {
     },
   });
 
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/categories");
   redirect("/admin/categories");
 }
 
 export async function updateCategory(id: string, formData: FormData) {
+  const notifyChange = createChangeNotifier("content", "Category updated", "/admin/categories");
   await requireSuperAdmin();
 
   const name = String(formData.get("name") || "").trim().slice(0, 120);
@@ -588,12 +623,15 @@ export async function updateCategory(id: string, formData: FormData) {
     },
   });
 
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/categories");
   redirect("/admin/categories");
 }
 
 export async function deleteCategory(id: string) {
+  const notifyChange = createChangeNotifier("content", "Category deleted", "/admin/categories");
   await requireSuperAdmin();
 
   const cat = await prisma.category.findUnique({
@@ -628,11 +666,14 @@ export async function deleteCategory(id: string) {
   }
 
   await prisma.category.delete({ where: { id } });
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/categories");
 }
 
 export async function createAdminUser(formData: FormData) {
+  const notifyChange = createChangeNotifier("security", "Admin account created", "/admin/admins");
   await requireSuperAdmin();
 
   const name = String(formData.get("name") || "").trim().slice(0, 80);
@@ -664,6 +705,15 @@ export async function createAdminUser(formData: FormData) {
     );
   }
 
+  const rawTagCa = String(formData.get("amazonTrackingIdCa") || "").trim();
+  const amazonTrackingIdCa =
+    rawTagCa === "" ? null : normalizeTrackingId(rawTagCa);
+  if (rawTagCa && !amazonTrackingIdCa) {
+    throw new Error(
+      "Invalid Canada Amazon Tracking ID. Use letters, numbers, and hyphens (e.g. admin2-20)."
+    );
+  }
+
   const existing = await prisma.adminUser.findUnique({ where: { email } });
   if (existing) throw new Error("An admin with that email already exists.");
 
@@ -678,14 +728,17 @@ export async function createAdminUser(formData: FormData) {
       canManageProducts,
       amazonTrackingId,
       amazonTrackingIdUk,
+      amazonTrackingIdCa,
     },
   });
 
+  await notifyChange();
   revalidatePath("/admin/admins");
   redirect("/admin/admins");
 }
 
 export async function updateAdminUser(id: string, formData: FormData) {
+  const notifyChange = createChangeNotifier("security", "Admin account or credentials updated", "/admin/admins");
   const current = await requireSuperAdmin();
 
   const target = await prisma.adminUser.findUnique({ where: { id } });
@@ -714,13 +767,23 @@ export async function updateAdminUser(id: string, formData: FormData) {
     );
   }
 
+  const rawTagCa = String(formData.get("amazonTrackingIdCa") || "").trim();
+  const amazonTrackingIdCa =
+    rawTagCa === "" ? null : normalizeTrackingId(rawTagCa);
+  if (rawTagCa && !amazonTrackingIdCa) {
+    throw new Error(
+      "Invalid Canada Amazon Tracking ID. Use letters, numbers, and hyphens (e.g. admin2-20)."
+    );
+  }
+
   if (id === current.id) {
     const data: {
       name: string;
       passwordHash?: string;
       amazonTrackingId: string | null;
       amazonTrackingIdUk: string | null;
-    } = { name, amazonTrackingId, amazonTrackingIdUk };
+    amazonTrackingIdCa: string | null;
+    } = { name, amazonTrackingId, amazonTrackingIdUk, amazonTrackingIdCa };
     if (newPassword) {
       data.passwordHash = await bcrypt.hash(
         passwordSchema.parse(newPassword),
@@ -728,9 +791,12 @@ export async function updateAdminUser(id: string, formData: FormData) {
       );
     }
     await prisma.adminUser.update({ where: { id }, data });
-    revalidatePath("/admin/admins");
-    revalidatePath("/admin/products");
-    revalidatePath("/admin/settings");
+    await notifyChange();
+  revalidatePath("/admin/admins");
+    await notifyChange();
+  revalidatePath("/admin/products");
+    await notifyChange();
+  revalidatePath("/admin/settings");
     redirect("/admin/admins");
   }
 
@@ -747,6 +813,7 @@ export async function updateAdminUser(id: string, formData: FormData) {
     isActive: boolean;
     amazonTrackingId: string | null;
     amazonTrackingIdUk: string | null;
+    amazonTrackingIdCa: string | null;
     passwordHash?: string;
   } = {
     name,
@@ -754,6 +821,7 @@ export async function updateAdminUser(id: string, formData: FormData) {
     isActive,
     amazonTrackingId,
     amazonTrackingIdUk,
+    amazonTrackingIdCa,
   };
 
   if (newPassword) {
@@ -764,12 +832,15 @@ export async function updateAdminUser(id: string, formData: FormData) {
   }
 
   await prisma.adminUser.update({ where: { id }, data });
+  await notifyChange();
   revalidatePath("/admin/admins");
+  await notifyChange();
   revalidatePath("/admin/products");
   redirect("/admin/admins");
 }
 
 export async function revokeAdminAccess(id: string) {
+  const notifyChange = createChangeNotifier("security", "Admin access revoked", "/admin/admins");
   const current = await requireSuperAdmin();
   if (id === current.id) throw new Error("Cannot revoke your own access.");
 
@@ -784,10 +855,12 @@ export async function revokeAdminAccess(id: string) {
     data: { isActive: false, canManageProducts: false },
   });
 
+  await notifyChange();
   revalidatePath("/admin/admins");
 }
 
 export async function deleteAdminUser(id: string) {
+  const notifyChange = createChangeNotifier("security", "Admin account deleted", "/admin/admins");
   const current = await requireSuperAdmin();
   if (id === current.id) throw new Error("Cannot delete yourself.");
 
@@ -798,6 +871,7 @@ export async function deleteAdminUser(id: string) {
   }
 
   await prisma.adminUser.delete({ where: { id } });
+  await notifyChange();
   revalidatePath("/admin/admins");
 }
 
@@ -809,6 +883,7 @@ export async function assertSuperAdminPage() {
 
 /** Bulk-publish selected drafts (or clear schedule). */
 export async function bulkPublishProducts(ids: string[]) {
+  const notifyChange = createChangeNotifier("content", "Products published", "/admin/products");
   const admin = await requireProductAccess();
   const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))].slice(
     0,
@@ -842,13 +917,17 @@ export async function bulkPublishProducts(ids: string[]) {
     }
   });
 
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
+  await notifyChange();
   revalidatePath("/admin/insights");
   return { ok: true as const, count: publishedIds.length };
 }
 
 export async function publishDueScheduledNow() {
+  const notifyChange = createChangeNotifier("content", "Scheduled products published", "/admin/products");
   const admin = await requireProductAccess();
   const now = new Date();
   const due = await prisma.product.findMany({
@@ -876,19 +955,25 @@ export async function publishDueScheduledNow() {
       }
     });
   }
+  await notifyChange();
   revalidatePath("/");
+  await notifyChange();
   revalidatePath("/admin/products");
+  await notifyChange();
   revalidatePath("/admin/insights");
   return { ok: true as const, count };
 }
 
 export async function runLinkHealthCheck(limit = 20) {
+  const notifyChange = createChangeNotifier("operations", "Link health check completed", "/admin/insights");
   const admin = await requireProductAccess();
   const { checkProductLinks } = await import("@/lib/link-check");
   const results = await checkProductLinks(limit, {
     ownerAdminId: isSuperAdmin(admin) ? undefined : admin.id,
   });
+  await notifyChange();
   revalidatePath("/admin/insights");
+  await notifyChange();
   revalidatePath("/admin/products");
   return { ok: true as const, results };
 }

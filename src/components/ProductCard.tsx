@@ -3,8 +3,11 @@ import { SafeProductImage } from "@/components/SafeProductImage";
 import { SaveButton } from "@/components/SaveButton";
 import { marketplaceBadge, marketplaceLabel } from "@/lib/marketplace";
 import { AFFILIATE_LINK_REL } from "@/lib/affiliate-disclosure";
+import { DealSavings } from "@/components/DealSavings";
+import type { DiscountData } from "@/lib/amazon-discounts";
 
-export type ProductCardData = {
+export type ProductCardData = DiscountData & {
+  isDemo?: boolean;
   id: string;
   title: string;
   slug: string;
@@ -30,7 +33,7 @@ export function ProductCard({
 
   return (
     <article className="group relative flex h-full w-full flex-col overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] ring-1 ring-border-subtle">
-      <Link href={detailsHref} className="flex flex-1 flex-col">
+      <Link href={detailsHref} className="flex flex-col">
         <div className="shelf relative aspect-square w-full overflow-hidden">
           <SafeProductImage
             src={product.imageUrl}
@@ -41,7 +44,7 @@ export function ProductCard({
             sizes="(max-width:640px) 46vw, (max-width:1024px) 30vw, 220px"
           />
           <span
-            className="absolute left-2 top-2 rounded-md bg-white/90 px-1.5 py-0.5 text-xs font-semibold text-neutral-800 ring-1 ring-black/5"
+            className="absolute left-2 top-2 rounded-md bg-card px-1.5 py-0.5 text-xs font-semibold text-foreground ring-1 ring-border-subtle"
             title={marketplaceLabel(product.marketplace)}
           >
             {store}
@@ -54,17 +57,18 @@ export function ProductCard({
 
       <SaveButton slug={product.slug} title={product.title} />
 
+      <div className="px-3"><DealSavings product={product} /></div>
       <div className="mt-auto px-3 pb-3 pt-2.5">
         <a
-          href={`/go/${product.slug}`}
-          target="_blank"
+          href={product.isDemo ? detailsHref : `/go/${product.slug}`}
+          target={product.isDemo ? undefined : "_blank"}
           rel={AFFILIATE_LINK_REL}
-          aria-label={`View ${product.title} on Amazon (paid link)`}
-          className="pressable flex h-11 w-full items-center justify-center rounded-full bg-brand text-[15px] font-semibold text-on-brand hover:bg-brand-dark"
+          aria-label={product.isDemo ? `Preview deal: ${product.title} (sample only)` : `Get deal on Amazon: ${product.title} (paid link, opens in a new tab)`}
+          className="pressable flex min-h-11 w-full items-center justify-center rounded-full bg-brand px-2 py-2 text-center text-[15px] font-semibold leading-snug text-on-brand hover:bg-brand-dark"
         >
-          View on Amazon
+          {product.isDemo ? "Preview deal" : "Get deal on Amazon"}
         </a>
-        <p className="mt-1.5 text-center text-xs text-muted-fg">Paid link</p>
+        <p className="mt-1.5 text-center text-xs text-muted-fg">{product.isDemo ? "Sample · preview only" : "Paid link"}</p>
       </div>
     </article>
   );

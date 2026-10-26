@@ -20,6 +20,8 @@ export function QuickAddProduct({
   autoPublish,
   hasTrackingId,
   trackingIdLabel,
+  hasTrackingIdCa = false,
+  trackingIdLabelCa = null,
   hasTrackingIdUk = false,
   trackingIdLabelUk = null,
   isSuperAdminUser = false,
@@ -30,13 +32,15 @@ export function QuickAddProduct({
   autoPublish: boolean;
   hasTrackingId: boolean;
   trackingIdLabel: string | null;
+  hasTrackingIdCa?: boolean;
+  trackingIdLabelCa?: string | null;
   hasTrackingIdUk?: boolean;
   trackingIdLabelUk?: string | null;
   isSuperAdminUser?: boolean;
 }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
-  const [marketplace, setMarketplace] = useState<"US" | "UK">("US");
+  const [marketplace, setMarketplace] = useState<"US" | "UK" | "CA">("US");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [failures, setFailures] = useState<string[]>([]);
@@ -46,9 +50,9 @@ export function QuickAddProduct({
   const [steps, setSteps] = useState<ImportStep[]>([]);
 
   const activeHasTracking =
-    marketplace === "UK" ? hasTrackingIdUk : hasTrackingId;
+    marketplace === "CA" ? hasTrackingIdCa : marketplace === "UK" ? hasTrackingIdUk : hasTrackingId;
   const activeTrackingLabel =
-    marketplace === "UK" ? trackingIdLabelUk : trackingIdLabel;
+    marketplace === "CA" ? trackingIdLabelCa : marketplace === "UK" ? trackingIdLabelUk : trackingIdLabel;
 
   function onUrlChange(value: string) {
     setUrl(value);
@@ -92,7 +96,7 @@ export function QuickAddProduct({
             categoryId:
               res.partial.categoryId || categories[0]?.id || "",
             categoryLabel: res.partial.categoryLabel || "",
-            marketplace: (res.partial.marketplace as "US" | "UK") || marketplace,
+            marketplace: (res.partial.marketplace as "US" | "UK" | "CA") || marketplace,
             existingProductId: res.partial.existingProductId || null,
           });
           setShowManual(true);
@@ -133,25 +137,25 @@ export function QuickAddProduct({
           <label className="block text-xs font-semibold text-foreground mb-1.5">
             Country / marketplace
           </label>
-          <div className="inline-flex rounded-lg border border-border bg-card-muted p-1 text-sm">
-            {(["US", "UK"] as const).map((code) => (
+          <div className="inline-flex w-full max-w-lg rounded-xl border border-border bg-card-muted p-1 text-[15px]">
+            {(["US", "UK", "CA"] as const).map((code) => (
               <button
                 key={code}
                 type="button"
                 onClick={() => setMarketplace(code)}
-                className={`rounded-md px-3.5 py-1.5 font-medium transition-colors ${
+                title={code === "CA" ? "Amazon.ca (Canada)" : code === "US" ? "Amazon.com (US)" : "Amazon.co.uk (UK)"}
+                className={`pressable min-h-11 flex-1 rounded-lg px-3.5 py-1.5 font-medium transition-colors ${
                   marketplace === code
                     ? "bg-card text-foreground shadow-sm border border-border"
                     : "text-muted hover:text-brand"
                 }`}
               >
-                {code === "US" ? "Amazon.com (US)" : "Amazon.co.uk (UK)"}
+                {code === "CA" ? "Canada" : code}
               </button>
             ))}
           </div>
           <p className="mt-1.5 text-xs text-muted">
-            UK deals need a UK Tracking ID on your admin profile. Pasting an
-            amazon.co.uk link auto-selects UK.
+            Each store needs its own tracking ID. Pasting an Amazon.ca or Amazon.co.uk link selects the matching store.
           </p>
         </div>
 
@@ -202,7 +206,7 @@ export function QuickAddProduct({
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}
             placeholder={
-              marketplace === "UK"
+              marketplace === "CA" ? "https://www.amazon.ca/dp/B0XXXXXXXX  or  B0XXXXXXXX" : marketplace === "UK"
                 ? "https://www.amazon.co.uk/dp/B0XXXXXXXX  or  B0XXXXXXXX"
                 : "https://www.amazon.com/dp/B0XXXXXXXX  or  B0XXXXXXXX"
             }
@@ -429,7 +433,7 @@ function ReviewForm({
             <p className="text-xs text-muted mt-0.5">
               Store:{" "}
               <span className="font-semibold text-foreground">
-                {values.marketplace === "UK"
+                {values.marketplace === "CA" ? "Amazon.ca (Canada)" : values.marketplace === "UK"
                   ? "Amazon.co.uk (UK)"
                   : "Amazon.com (US)"}
               </span>

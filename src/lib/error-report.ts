@@ -6,6 +6,12 @@ export async function reportError(
   error: unknown,
   context?: Record<string, string | number | boolean | null | undefined>
 ): Promise<void> {
+  // Alert summaries intentionally exclude raw errors, request data and stacks.
+  try {
+    const { recordSystemEvent } = await import("./system-events");
+    const source = String(context?.source || "application").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+    if (context?.source !== "socialQueue") await recordSystemEvent({ category: "operations", level: "error", title: "Application error reported", detail: `An operation failed in ${source || "application"}. Review application logs for details.`, dedupeKey: `runtime-error:${source}:${new Date().toISOString().slice(0, 13)}`, adminPath: "/admin/settings#email" });
+  } catch { /* reporting must never break the application */ }
   const dsn = process.env.SENTRY_DSN?.trim();
   if (!dsn) return;
 

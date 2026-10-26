@@ -7,8 +7,7 @@ import { clientIp } from "@/lib/rate-limit";
 import { rateLimitDurable } from "@/lib/rate-limit-durable";
 import {
   getAdminTrackingId,
-  MISSING_TRACKING_ID_MESSAGE,
-  MISSING_UK_TRACKING_ID_MESSAGE,
+  missingTrackingIdMessage,
 } from "@/lib/admin-tracking";
 import {
   detectMarketplaceFromInput,
@@ -72,9 +71,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            marketplace === "UK"
-              ? MISSING_UK_TRACKING_ID_MESSAGE
-              : MISSING_TRACKING_ID_MESSAGE,
+            missingTrackingIdMessage(marketplace),
         },
         { status: 403 }
       );

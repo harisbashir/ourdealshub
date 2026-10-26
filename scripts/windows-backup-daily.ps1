@@ -1,4 +1,4 @@
-# Schedule daily Postgres backup for OurDealsHub (Windows Task Scheduler).
+# Schedule daily MariaDB backup for OurDealsHub (Windows Task Scheduler).
 # Run once:
 #   powershell -ExecutionPolicy Bypass -File scripts\windows-backup-daily.ps1
 

@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String    @default("")
+  passwordHash      String
+  /// SUPER_ADMIN | ADMIN
+  role              String    @default("ADMIN")
+  isActive          Boolean   @default(true)
+  canManageProducts Boolean   @default(true)
+  /// Amazon Associates tracking ID / partner tag for this admin (e.g. main-20) — US / amazon.com
+  amazonTrackingId  String?
+  /// UK Associates tracking ID (amazon.co.uk)
+  amazonTrackingIdUk String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  products          Product[]
+  blogPosts         BlogPost[]
+}
+
+/// Editorial / tips / deal-roundup blog posts
+model BlogPost {
+  id            String            @id @default(cuid())
+  title         String
+  slug          String            @unique
+  excerpt       String?
+  /// Plain text; blank lines = new paragraphs
+  content       String
+  coverImageUrl String?
+  isPublished   Boolean           @default(false)
+  publishedAt   DateTime?
+  createdById   String?
+  createdBy     AdminUser?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  /// Deals featured inside this post
+  products      BlogPostProduct[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([isPublished, publishedAt])
+}
+
+model BlogPostProduct {
+  id        String   @id @default(cuid())
+  blogPostId String
+  blogPost  BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+
+  @@unique([blogPostId, productId])
+  @@index([productId])
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  icon        String     @default("tag")
+  sortOrder   Int        @default(0)
+  featured    Boolean    @default(false)
+  imageUrl    String?
+  badge       String?
+  description String?
+  /// null = main category; set = subcategory under a main
+  parentId    String?
+  /// Restrict: never cascade-wipe subcategories/products from a DB-level delete
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([parentId])
+}
+
+model Product {
+  id           String       @id @default(cuid())
+  title        String
+  slug         String       @unique
+  description  String?
+  dealPost     String?
+  /// Amazon CDN image URL only — never download/rehost
+  imageUrl     String
+  couponCode   String?
+  affiliateUrl String
+  /// Tracking ID / partner tag used when this product was created
+  trackingId   String?
+  /// US | UK — which Amazon storefront this deal belongs to
+  marketplace  String       @default("US")
+  asin         String?
+  categoryId   String
+  /// Restrict: deleting a category must not hard-delete its products
+  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdById  String?
+  createdBy    AdminUser?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  isTrending   Boolean      @default(false)
+  isFeatured   Boolean      @default(false)
+  isPublished  Boolean      @default(true)
+  /// When set in the future + draft → cron publishes at this time
+  scheduledAt  DateTime?
+  /// ok | broken | unknown
+  linkStatus   String       @default("unknown")
+  linkCheckedAt DateTime?
+  deletedAt    DateTime?
+  expiresAt    DateTime?
+  lastSyncedAt DateTime?
+  clickCount   Int          @default(0)
+  clicks       ClickEvent[]
+  socialPosts  SocialPostLog[]
+  blogPosts    BlogPostProduct[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([asin])
+  @@index([createdById, asin])
+  @@index([scheduledAt])
+  @@index([isPublished, deletedAt])
+  @@index([marketplace])
+}
+
+model ClickEvent {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userAgent String?
+  referer   String?
+  /// Campaign / channel source from /go?src= (fb, email, …)
+  campaign  String?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+  @@index([campaign])
+}
+
+model SiteSettings {
+  id                   String   @id @default("default")
+  geminiPromptTemplate String   @default("")
+  autoPublish          Boolean  @default(false)
+  /// Fallback only when Amazon returns no browse category
+  defaultCategoryId    String?
+  /// Auto social post when a deal becomes published
+  socialAutoPost       Boolean  @default(true)
+  /// Last successful /api/cron/daily run (heartbeat)
+  cronLastRunAt        DateTime?
+  cronLastOk           Boolean  @default(false)
+  cronLastSummary      String?
+  /// Accent colour preset for the whole site (see src/lib/theme.ts)
+  accentTheme          String   @default("tangerine")
+  updatedAt            DateTime @updatedAt
+}
+
+/// API keys managed from Admin → Settings (Super Admin). Values are sealed with
+/// secret-box (AES-GCM, key from AUTH_SECRET). Env vars of the same name are the fallback.
+model ApiCredential {
+  /// e.g. GEMINI_API_KEY, AMAZON_US_CREDENTIAL_ID (see src/lib/api-config.ts)
+  key         String   @id
+  value       String
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+/// Durable rate-limit counters (shared across Node/serverless instances)
+model RateBucket {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
+}
+
+/// Connected social channels for auto-post (Super Admin).
+model SocialConnection {
+  id             String    @id @default(cuid())
+  /// facebook | threads | instagram | telegram | pinterest | x
+  platform       String    @unique
+  pageId         String
+  pageName       String    @default("")
+  /// Long-lived Page access token — server only, never expose to client
+  accessToken    String
+  isActive       Boolean   @default(true)
+  lastError      String?
+  /// When the access token is expected to expire (Meta long-lived ~60d)
+  tokenExpiresAt DateTime?
+  /// Last successful auto-post from this connection
+  lastPostAt     DateTime?
+  connectedAt    DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+/// Log of auto / manual social publishes
+model SocialPostLog {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platform   String
+  status     String
+  externalId String?
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([productId, platform])
+  @@index([createdAt])
+}

@@ -84,8 +84,9 @@ export default async function DealsTypePage({ params, searchParams }: Props) {
     total = count;
     pages = totalPages(total);
     products = recent.map(
-      ({ id, title, slug, imageUrl, affiliateUrl, marketplace }) => ({
+      ({ id, title, slug, imageUrl, affiliateUrl, marketplace, isDemo }) => ({
         id,
+        isDemo,
         title,
         slug,
         imageUrl,

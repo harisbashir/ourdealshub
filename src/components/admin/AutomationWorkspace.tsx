@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Facebook,
+  Instagram,
+  Pin,
   AtSign,
   Send,
   CheckCircle2,
@@ -18,6 +20,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import {
+  connectImageChannel,
+  resolveSocialDelivery,
   connectFacebookPage,
   connectThreadsAccount,
   connectSocialStub,
@@ -41,6 +45,8 @@ export type ShareDeal = {
   affiliateUrl: string;
   dealUrl: string;
   goUrl: string;
+  marketplace?: string;
+  isDemo?: boolean;
 };
 
 export type PostActivityRow = {
@@ -166,8 +172,30 @@ const PLATFORMS: PlatformConfig[] = [
       tokenPlaceholder: "Paste BotFather token",
     },
   },
-  // Instagram / Pinterest / X intentionally omitted — auto-post is not
-  // implemented for those platforms yet (would look "connected" but silent).
+  {
+    id: "instagram", label: "Instagram", icon: Instagram,
+    connectAction: (form) => connectImageChannel(form, "instagram"),
+    setupHint: "Professional account + Instagram Login token",
+    guide: {
+      steps: [
+        <>Use an Instagram Business or Creator account and an app configured with <DocLink href="https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/">Instagram Login</DocLink>.</>,
+        <>Grant <strong>instagram_business_basic</strong> and <strong>instagram_business_content_publish</strong>. Use an Instagram user token, not a Facebook Page token.</>,
+        <>Enter the Instagram user ID and token. Posts use an original OurDealsHub share card. Put your public website in your Instagram bio; caption URLs are not clickable.</>,
+      ], idLabel: "Instagram user ID", idPlaceholder: "Numeric Instagram user ID", tokenLabel: "Instagram Login access token", tokenPlaceholder: "Paste your Instagram user token",
+    },
+  },
+  {
+    id: "pinterest", label: "Pinterest", icon: Pin,
+    connectAction: (form) => connectImageChannel(form, "pinterest"),
+    setupHint: "Public board ID + Pinterest API token",
+    guide: {
+      steps: [
+        <>Create a business account and app in <DocLink href="https://developers.pinterest.com/">Pinterest Developers</DocLink>. Production access may require app approval.</>,
+        <>Generate a token with <strong>boards:read</strong>, <strong>pins:read</strong> and <strong>pins:write</strong>. Choose a public board you can write to.</>,
+        <>Enter its numeric board ID and token. Pins use an original share card, an affiliate disclosure and the deal&apos;s Amazon link.</>,
+      ], idLabel: "Pinterest board ID", idPlaceholder: "Numeric board ID (not the board URL)", tokenLabel: "Pinterest access token", tokenPlaceholder: "Paste your Pinterest API token",
+    },
+  },
 ];
 
 const PLATFORM_LABEL: Record<string, string> = Object.fromEntries(
@@ -178,7 +206,11 @@ export function AutomationWorkspace({
   connections,
   activity,
   previewDeal,
+  publishingNotice,
+  queue = [],
 }: {
+  publishingNotice?: string | null;
+  queue?: { id: string; title: string; platform: string; status: string; lastError: string | null }[];
   deals?: ShareDeal[];
   connections: Record<SocialPlatform, PublicSocialConnection>;
   activity: PostActivityRow[];
@@ -197,7 +229,7 @@ export function AutomationWorkspace({
       const res = await retryFailedSocialPosts();
       setRetryMsg(
         res.retried > 0
-          ? `Retried ${res.retried} deal${res.retried === 1 ? "" : "s"}.`
+          ? `Queued ${res.retried} ${res.retried === 1 ? "delivery" : "deliveries"}.`
           : "Nothing to retry right now."
       );
       router.refresh();
@@ -206,7 +238,8 @@ export function AutomationWorkspace({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+      {publishingNotice && <p role="status" className="rounded-2xl bg-warning-soft p-4 text-[15px] leading-relaxed text-warning ring-1 ring-border-subtle">{publishingNotice}</p>}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {PLATFORMS.map((p) => (
           <PlatformCard
             key={p.id}
@@ -239,13 +272,25 @@ export function AutomationWorkspace({
           className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand shadow-sm shadow-brand/20 hover:bg-brand-dark disabled:opacity-60 transition-colors"
         >
           <RefreshCw className={`h-4 w-4 ${pending ? "animate-spin" : ""}`} />
-          Retry failed posts now
+          Queue failed posts again
         </button>
         {retryMsg && (
-          <span className="text-xs font-medium text-success">{retryMsg}</span>
+          <span role="status" className="text-[15px] font-medium text-success">{retryMsg}</span>
         )}
       </div>
 
+      {queue.length > 0 && <section className="rounded-2xl bg-card p-5 ring-1 ring-border-subtle">
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">Publishing queue</h2>
+        <p className="mt-1 text-[15px] text-muted">New posts are checked every five minutes. A confirmed post is never sent twice.</p>
+        <ul className="mt-4 divide-y divide-border-subtle">{queue.map((job) => <li key={job.id} className="py-4">
+          <div className="flex flex-wrap justify-between gap-2"><p className="text-[15px] font-medium text-foreground">{job.title}</p><span className="text-[13px] text-muted">{PLATFORM_LABEL[job.platform]} · {job.status}</span></div>
+          {job.lastError && <p className="mt-1 text-[15px] text-muted">{job.lastError}</p>}
+          {job.status === "uncertain" && <div className="mt-3 flex flex-wrap gap-2">
+            <button disabled={pending} className="pressable min-h-11 rounded-full bg-card-muted px-4 text-[15px] font-medium text-foreground" onClick={() => startTransition(async () => { await resolveSocialDelivery(job.id, "published"); router.refresh(); })}>I checked — already posted</button>
+            <button disabled={pending} className="pressable min-h-11 rounded-full bg-brand px-4 text-[15px] font-medium text-on-brand" onClick={() => startTransition(async () => { await resolveSocialDelivery(job.id, "retry"); router.refresh(); })}>I checked — retry</button>
+          </div>}
+        </li>)}</ul>
+      </section>}
       {setupPlatform && (
         <SetupPanel
           key={setupPlatform}
@@ -365,7 +410,7 @@ function PlatformCard({
           <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs sm:text-sm font-semibold text-foreground leading-snug line-clamp-2">
+          <p className="text-[15px] font-semibold text-foreground leading-snug line-clamp-2">
             {config.label}
           </p>
           {live ? (
@@ -389,6 +434,7 @@ function PlatformCard({
               {connection.pageName}
             </p>
           )}
+          {connection.expired && <p className="mt-1 text-xs font-semibold text-danger">Token expired — reconnect</p>}
           {connection.expiresSoon && (
             <p className="mt-0.5 text-xs font-semibold text-warning">
               Token expires soon
@@ -414,7 +460,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={() => onToggle(false)}
-              className="rounded-md sm:rounded-lg border border-danger/30 bg-danger-soft px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-danger hover:bg-danger-soft disabled:opacity-50"
+              className="pressable min-h-11 rounded-md sm:rounded-lg border border-danger/30 bg-danger-soft px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-danger hover:bg-danger-soft disabled:opacity-50"
             >
               Disable
             </button>
@@ -422,7 +468,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={onSetup}
-              className="rounded-md sm:rounded-lg border border-brand/30 bg-brand-soft px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-on-brand transition-colors"
+              className="pressable min-h-11 rounded-md sm:rounded-lg border border-brand/30 bg-brand-soft px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-brand hover:bg-brand hover:text-on-brand transition-colors"
             >
               Reconnect
             </button>
@@ -431,9 +477,9 @@ function PlatformCard({
           <>
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || connection.expired}
               onClick={() => onToggle(true)}
-              className="rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-dark disabled:opacity-50"
+              className="pressable min-h-11 rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-dark disabled:opacity-50"
             >
               Enable
             </button>
@@ -441,7 +487,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={onSetup}
-              className="rounded-md sm:rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-muted hover:border-brand hover:text-brand"
+              className="pressable min-h-11 rounded-md sm:rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-muted hover:border-brand hover:text-brand"
             >
               Reconnect
             </button>
@@ -449,7 +495,7 @@ function PlatformCard({
               type="button"
               disabled={pending}
               onClick={onRemove}
-              className="rounded-md sm:rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium text-muted-fg hover:border-danger/30 hover:text-danger"
+              className="pressable min-h-11 rounded-md sm:rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium text-muted-fg hover:border-danger/30 hover:text-danger"
             >
               Remove
             </button>
@@ -459,9 +505,9 @@ function PlatformCard({
             type="button"
             disabled={pending}
             onClick={onSetup}
-            className="rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-dark disabled:opacity-50"
+            className="pressable min-h-11 rounded-md sm:rounded-lg bg-brand px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-dark disabled:opacity-50"
           >
-            Enable
+            Connect
           </button>
         )}
       </div>
@@ -524,7 +570,7 @@ function SetupPanel({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs font-medium text-muted-fg hover:text-brand"
+          className="pressable min-h-11 px-3 text-[15px] font-medium text-muted-fg hover:text-brand"
         >
           Close
         </button>
@@ -538,10 +584,11 @@ function SetupPanel({
 
       <form action={onConnect} className="space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-muted mb-1">
+          <label htmlFor={`social-${config.id}-account`} className="block text-[15px] font-medium text-foreground mb-1">
             {config.guide.idLabel}
           </label>
           <input
+            id={`social-${config.id}-account`}
             name="pageId"
             required
             defaultValue={connection.pageId || ""}
@@ -550,10 +597,11 @@ function SetupPanel({
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-muted mb-1">
+          <label htmlFor={`social-${config.id}-token`} className="block text-[15px] font-medium text-foreground mb-1">
             {config.guide.tokenLabel}
           </label>
           <input
+            id={`social-${config.id}-token`}
             name="accessToken"
             type="password"
             required
@@ -562,6 +610,11 @@ function SetupPanel({
             className="w-full rounded-xl border border-border bg-card-muted px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:bg-card focus:ring-2 focus:ring-brand/15"
           />
         </div>
+        {(config.id === "instagram" || config.id === "pinterest") && <div>
+          <label htmlFor="social-token-expiry" className="mb-1 block text-[15px] font-medium text-foreground">Token expiry date</label>
+          <input id="social-token-expiry" type="date" name="tokenExpiresAt" required defaultValue={connection.tokenExpiresAt?.slice(0, 10) || ""} className="min-h-11 w-full rounded-xl border border-border bg-card-muted px-3.5 text-[15px] text-foreground" />
+          <p className="mt-1 text-xs text-muted">Use the expiry shown by your developer dashboard. Reconnect before it expires.</p>
+        </div>}
         {error && (
           <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
             {error}
@@ -570,12 +623,13 @@ function SetupPanel({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark disabled:opacity-60"
+          className="pressable min-h-11 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-on-brand hover:bg-brand-dark disabled:opacity-60"
         >
           {pending ? "Saving…" : `Save & enable ${config.label}`}
         </button>
       </form>
 
+      {previewDeal && (config.id === "instagram" || config.id === "pinterest") && <a href={`/api/social-image/${previewDeal.slug}`} target="_blank" rel="noopener noreferrer" className="pressable mt-4 inline-flex min-h-11 items-center rounded-full bg-card-muted px-4 text-[15px] font-medium text-foreground">Preview original share card</a>}
       {sample && (
         <div className="mt-5 border-t border-border-subtle pt-4">
           <p className="text-xs font-semibold text-muted mb-1">
@@ -588,7 +642,7 @@ function SetupPanel({
             {sample.caption}
           </pre>
           <div className="mt-2">
-            <CopyTextButton text={sample.caption} label="Copy sample" />
+            {!previewDeal?.isDemo && <CopyTextButton text={sample.caption} label="Copy caption" />}
           </div>
         </div>
       )}
@@ -599,7 +653,7 @@ function SetupPanel({
 function CaptionPreview({ deal }: { deal: ShareDeal }) {
   const [platform, setPlatform] = useState<SocialPlatform>("facebook");
   const post = buildPlatformPost(platform, deal);
-  const livePlatforms: SocialPlatform[] = ["facebook", "threads", "telegram"];
+  const livePlatforms: SocialPlatform[] = ["facebook", "threads", "telegram", "instagram", "pinterest"];
 
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-brand/40">
@@ -609,7 +663,7 @@ function CaptionPreview({ deal }: { deal: ShareDeal }) {
             Caption preview
           </h2>
           <p className="text-xs text-muted-fg line-clamp-1">
-            Latest deal: {deal.title}
+            {deal.isDemo ? "Sample preview · never shared" : "Latest deal"}: {deal.title}
           </p>
         </div>
         <div className="flex flex-wrap gap-1">
@@ -618,7 +672,8 @@ function CaptionPreview({ deal }: { deal: ShareDeal }) {
               key={p}
               type="button"
               onClick={() => setPlatform(p)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${
+              aria-pressed={platform === p}
+              className={`pressable min-h-11 rounded-xl px-3 py-2 text-[13px] font-semibold capitalize ${
                 platform === p
                   ? "bg-brand text-on-brand"
                   : "border border-border text-muted hover:border-brand hover:text-brand"
@@ -633,7 +688,7 @@ function CaptionPreview({ deal }: { deal: ShareDeal }) {
         {post.caption}
       </pre>
       <div className="mt-2 flex gap-2">
-        <CopyTextButton text={post.caption} label="Copy" />
+        {!deal.isDemo && <CopyTextButton text={post.caption} label="Copy" />}
         <span className="text-xs text-muted-fg self-center tabular-nums">
           {post.countLabel}
         </span>

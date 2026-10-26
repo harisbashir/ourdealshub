@@ -4,15 +4,13 @@ import { requireProductAccess } from "@/lib/admin-auth";
 import { getAdminTrackingId } from "@/lib/admin-tracking";
 import {
   extractAsin,
-  getEnvPartnerTagFallback,
   isAmazonConfigured,
   lookupAmazonProduct,
 } from "@/lib/amazon";
 import { generateProductContent, isGeminiConfigured } from "@/lib/gemini";
 import { getSiteSettings } from "@/lib/settings";
-import { normalizeTrackingId } from "@/lib/tracking";
 import { rateLimitDurable } from "@/lib/rate-limit-durable";
-import { detectMarketplaceFromInput } from "@/lib/marketplace";
+import { detectMarketplaceFromInput, parseMarketplace } from "@/lib/marketplace";
 
 export type ManualFetchResult =
   | {
@@ -29,31 +27,11 @@ export type ManualGeminiResult =
   | { ok: false; error: string };
 
 /**
- * Partner tag for the Creators API lookup only (never saved here).
- * The admin's own tag for this store first — Amazon rejects tags from another
- * store, and we never trust client-supplied tags — then the pasted link's tag.
- */
-function partnerTagForLookup(
-  affiliateUrl: string,
-  adminTrackingId: string | null
-): string | null {
-  const own =
-    normalizeTrackingId(adminTrackingId) ||
-    normalizeTrackingId(getEnvPartnerTagFallback());
-  if (own) return own;
-  try {
-    return normalizeTrackingId(new URL(affiliateUrl).searchParams.get("tag"));
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Pull title / description / Amazon CDN image from an affiliate URL or ASIN.
  * Does not change the affiliate link the admin pasted.
  */
 export async function fetchProductDetailsFromLink(
-  input: string
+  input: string, marketplaceInput: string = "US"
 ): Promise<ManualFetchResult> {
   const admin = await requireProductAccess();
   const limited = await rateLimitDurable(
@@ -73,7 +51,7 @@ export async function fetchProductDetailsFromLink(
     return { ok: false, error: "Paste an affiliate link or ASIN first." };
   }
 
-  const market = detectMarketplaceFromInput(raw) || "US";
+  const market = detectMarketplaceFromInput(raw) || parseMarketplace(marketplaceInput);
   if (!(await isAmazonConfigured(market))) {
     return {
       ok: false,
@@ -90,12 +68,12 @@ export async function fetchProductDetailsFromLink(
   }
 
   const adminTag = await getAdminTrackingId(admin.id, market);
-  const partnerTag = partnerTagForLookup(raw, adminTag);
+  const partnerTag = adminTag;
   if (!partnerTag) {
     return {
       ok: false,
       error:
-        "Need a partner tag for Amazon lookup. Include ?tag=yourtag-20 in your affiliate link, or ask the Super Admin to set API credentials / Tracking ID.",
+        `Add your ${market} tracking ID under Admins before looking up products in this store.`,
     };
   }
 

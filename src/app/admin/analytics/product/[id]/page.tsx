@@ -44,16 +44,16 @@ export default async function ProductAnalyticsPage({
       where: { productId: id, createdAt: { gte: since } },
     }),
     prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
-      SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::bigint AS count
-      FROM "ClickEvent"
-      WHERE "productId" = ${id} AND "createdAt" >= ${since}
-      GROUP BY DATE_TRUNC('day', "createdAt")
+      SELECT DATE(\`createdAt\`) AS day, COUNT(*) AS count
+      FROM \`ClickEvent\`
+      WHERE \`productId\` = ${id} AND \`createdAt\` >= ${since}
+      GROUP BY DATE(\`createdAt\`)
       ORDER BY day ASC
     `,
     prisma.$queryRaw<Array<{ campaign: string | null; count: bigint }>>`
-      SELECT COALESCE(campaign, 'direct') AS campaign, COUNT(*)::bigint AS count
-      FROM "ClickEvent"
-      WHERE "productId" = ${id} AND "createdAt" >= ${since}
+      SELECT COALESCE(campaign, 'direct') AS campaign, COUNT(*) AS count
+      FROM \`ClickEvent\`
+      WHERE \`productId\` = ${id} AND \`createdAt\` >= ${since}
       GROUP BY COALESCE(campaign, 'direct')
       ORDER BY count DESC
     `,

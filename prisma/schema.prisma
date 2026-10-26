@@ -3,38 +3,40 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model AdminUser {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  name              String    @default("")
-  passwordHash      String
+  id                 String     @id @default(cuid())
+  email              String     @unique @db.VarChar(254)
+  name               String     @default("")
+  passwordHash       String
   /// SUPER_ADMIN | ADMIN
-  role              String    @default("ADMIN")
-  isActive          Boolean   @default(true)
-  canManageProducts Boolean   @default(true)
+  role               String     @default("ADMIN")
+  isActive           Boolean    @default(true)
+  canManageProducts  Boolean    @default(true)
   /// Amazon Associates tracking ID / partner tag for this admin (e.g. main-20) — US / amazon.com
-  amazonTrackingId  String?
+  amazonTrackingId   String?
   /// UK Associates tracking ID (amazon.co.uk)
   amazonTrackingIdUk String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  products          Product[]
-  blogPosts         BlogPost[]
+  /// Canada Associates tag (amazon.ca)
+  amazonTrackingIdCa String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  products           Product[]
+  blogPosts          BlogPost[]
 }
 
 /// Editorial / tips / deal-roundup blog posts
 model BlogPost {
   id            String            @id @default(cuid())
-  title         String
+  title         String            @db.Text
   slug          String            @unique
-  excerpt       String?
+  excerpt       String?           @db.Text
   /// Plain text; blank lines = new paragraphs
-  content       String
-  coverImageUrl String?
+  content       String            @db.LongText
+  coverImageUrl String?           @db.Text
   isPublished   Boolean           @default(false)
   publishedAt   DateTime?
   createdById   String?
@@ -48,12 +50,12 @@ model BlogPost {
 }
 
 model BlogPostProduct {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   blogPostId String
-  blogPost  BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sortOrder Int      @default(0)
+  blogPost   BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder  Int      @default(0)
 
   @@unique([blogPostId, productId])
   @@index([productId])
@@ -66,9 +68,9 @@ model Category {
   icon        String     @default("tag")
   sortOrder   Int        @default(0)
   featured    Boolean    @default(false)
-  imageUrl    String?
+  imageUrl    String?    @db.Text
   badge       String?
-  description String?
+  description String?    @db.Text
   /// null = main category; set = subcategory under a main
   parentId    String?
   /// Restrict: never cascade-wipe subcategories/products from a DB-level delete
@@ -82,42 +84,50 @@ model Category {
 }
 
 model Product {
-  id           String       @id @default(cuid())
-  title        String
-  slug         String       @unique
-  description  String?
-  dealPost     String?
+  /// Preview catalog entries: no affiliate redirects, analytics or social posts
+  isDemo           Boolean           @default(false)
+  id               String            @id @default(cuid())
+  title            String            @db.Text
+  slug             String            @unique
+  description      String?           @db.Text
+  dealPost         String?           @db.Text
   /// Amazon CDN image URL only — never download/rehost
-  imageUrl     String
-  couponCode   String?
-  affiliateUrl String
+  imageUrl         String            @db.Text
+  couponCode       String?
+  affiliateUrl     String            @db.Text
   /// Tracking ID / partner tag used when this product was created
-  trackingId   String?
+  trackingId       String?
   /// US | UK — which Amazon storefront this deal belongs to
-  marketplace  String       @default("US")
-  asin         String?
-  categoryId   String
+  marketplace      String            @default("US")
+  asin             String?
+  categoryId       String
   /// Restrict: deleting a category must not hard-delete its products
-  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  createdById  String?
-  createdBy    AdminUser?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  isTrending   Boolean      @default(false)
-  isFeatured   Boolean      @default(false)
-  isPublished  Boolean      @default(true)
+  category         Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdById      String?
+  createdBy        AdminUser?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  isTrending       Boolean           @default(false)
+  isFeatured       Boolean           @default(false)
+  isPublished      Boolean           @default(true)
   /// When set in the future + draft → cron publishes at this time
-  scheduledAt  DateTime?
+  scheduledAt      DateTime?
   /// ok | broken | unknown
-  linkStatus   String       @default("unknown")
-  linkCheckedAt DateTime?
-  deletedAt    DateTime?
-  expiresAt    DateTime?
-  lastSyncedAt DateTime?
-  clickCount   Int          @default(0)
-  clicks       ClickEvent[]
-  socialPosts  SocialPostLog[]
-  blogPosts    BlogPostProduct[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  linkStatus       String            @default("unknown")
+  linkCheckedAt    DateTime?
+  deletedAt        DateTime?
+  expiresAt        DateTime?
+  lastSyncedAt     DateTime?
+  /// Trusted Creators API savings only. Never accept these fields from a form.
+  discountPercent  Int?
+  discountBasis    String?
+  discountFetchedAt DateTime?
+  discountExpiresAt DateTime?
+  clickCount       Int               @default(0)
+  clicks           ClickEvent[]
+  socialDeliveries SocialDelivery[]
+  socialPosts      SocialPostLog[]
+  blogPosts        BlogPostProduct[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@index([asin])
   @@index([createdById, asin])
@@ -130,8 +140,8 @@ model ClickEvent {
   id        String   @id @default(cuid())
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  userAgent String?
-  referer   String?
+  userAgent String?  @db.Text
+  referer   String?  @db.Text
   /// Campaign / channel source from /go?src= (fb, email, …)
   campaign  String?
   createdAt DateTime @default(now())
@@ -142,35 +152,35 @@ model ClickEvent {
 }
 
 model SiteSettings {
-  id                   String   @id @default("default")
-  geminiPromptTemplate String   @default("")
-  autoPublish          Boolean  @default(false)
+  id                   String    @id @default("default")
+  geminiPromptTemplate String    @default("") @db.LongText
+  autoPublish          Boolean   @default(false)
   /// Fallback only when Amazon returns no browse category
   defaultCategoryId    String?
   /// Auto social post when a deal becomes published
-  socialAutoPost       Boolean  @default(true)
+  socialAutoPost       Boolean   @default(true)
   /// Last successful /api/cron/daily run (heartbeat)
   cronLastRunAt        DateTime?
-  cronLastOk           Boolean  @default(false)
-  cronLastSummary      String?
+  cronLastOk           Boolean   @default(false)
+  cronLastSummary      String?   @db.Text
   /// Accent colour preset for the whole site (see src/lib/theme.ts)
-  accentTheme          String   @default("tangerine")
-  updatedAt            DateTime @updatedAt
+  accentTheme          String    @default("tangerine")
+  updatedAt            DateTime  @updatedAt
 }
 
 /// API keys managed from Admin → Settings (Super Admin). Values are sealed with
 /// secret-box (AES-GCM, key from AUTH_SECRET). Env vars of the same name are the fallback.
 model ApiCredential {
   /// e.g. GEMINI_API_KEY, AMAZON_US_CREDENTIAL_ID (see src/lib/api-config.ts)
-  key         String   @id
-  value       String
+  key         String   @id @db.VarChar(512)
+  value       String   @db.Text
   updatedById String?
   updatedAt   DateTime @updatedAt
 }
 
 /// Durable rate-limit counters (shared across Node/serverless instances)
 model RateBucket {
-  key         String   @id
+  key         String   @id @db.VarChar(512)
   count       Int      @default(0)
   windowStart DateTime
   updatedAt   DateTime @updatedAt
@@ -184,9 +194,9 @@ model SocialConnection {
   pageId         String
   pageName       String    @default("")
   /// Long-lived Page access token — server only, never expose to client
-  accessToken    String
+  accessToken    String    @db.Text
   isActive       Boolean   @default(true)
-  lastError      String?
+  lastError      String?   @db.Text
   /// When the access token is expected to expire (Meta long-lived ~60d)
   tokenExpiresAt DateTime?
   /// Last successful auto-post from this connection
@@ -203,9 +213,109 @@ model SocialPostLog {
   platform   String
   status     String
   externalId String?
-  error      String?
+  error      String?  @db.Text
   createdAt  DateTime @default(now())
 
   @@index([productId, platform])
   @@index([createdAt])
+}
+
+/// One durable delivery per deal/channel, processed by a finite cron script.
+model SocialDelivery {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platform   String
+  /// queued | processing | published | failed | uncertain | cancelled
+  status     String   @default("queued")
+  attempts   Int      @default(0)
+  lastError  String?  @db.Text
+  externalId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([productId, platform])
+  @@index([status, createdAt])
+}
+
+/// One site-wide sender; only Super Admins may view or change it.
+model MailSettings {
+  id                String    @id @default("default")
+  enabled           Boolean   @default(false)
+  provider          String    @default("gmail")
+  host              String    @default("smtp.gmail.com")
+  port              Int       @default(465)
+  secure            Boolean   @default(true)
+  username          String    @default("") @db.VarChar(254)
+  fromAddress       String    @default("") @db.VarChar(254)
+  recipient         String    @default("") @db.VarChar(254)
+  password          String?   @db.Text
+  oauthClientId     String    @default("")
+  oauthRefreshToken String?   @db.Text
+  digestMinutes     Int       @default(5)
+  notifyContent     Boolean   @default(true)
+  notifySettings    Boolean   @default(true)
+  notifySecurity    Boolean   @default(true)
+  notifySocial      Boolean   @default(true)
+  notifyOperations  Boolean   @default(true)
+  workerToken       String?
+  workerLeaseUntil  DateTime?
+  lastWorkerAt      DateTime?
+  lastSentAt        DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
+/// Safe event summaries only: never store passwords, keys or request bodies.
+model SystemEvent {
+  id         String        @id @default(cuid())
+  category   String
+  level      String        @default("info")
+  title      String
+  detail     String?       @db.Text
+  adminPath  String        @default("/admin")
+  dedupeKey  String?       @unique
+  /// queued | suppressed | sending | sent | failed | uncertain
+  mailStatus String        @default("suppressed")
+  deliveryId String?
+  delivery   MailDelivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  createdAt  DateTime      @default(now())
+
+  @@index([mailStatus, createdAt])
+  @@index([createdAt])
+}
+
+model MailDelivery {
+  id        String        @id @default(cuid())
+  /// test | activity
+  kind      String
+  recipient String        @db.VarChar(254)
+  subject   String
+  text      String        @db.LongText
+  /// queued | sending | sent | failed | uncertain | cancelled
+  status    String        @default("queued")
+  error     String?       @db.Text
+  messageId String?
+  createdAt DateTime      @default(now())
+  sentAt    DateTime?
+  updatedAt DateTime      @updatedAt
+  events    SystemEvent[]
+
+  @@index([status, createdAt])
+}
+
+model MailOAuthAttempt {
+  id           String   @id @default(cuid())
+  adminId      String
+  clientId     String
+  deviceCode   String   @db.Text
+  expiresAt    DateTime
+  nextPollAt   DateTime
+  intervalSecs Int
+  createdAt    DateTime @default(now())
+}
+
+model SystemMonitor {
+  key       String   @id
+  state     String
+  updatedAt DateTime @updatedAt
 }

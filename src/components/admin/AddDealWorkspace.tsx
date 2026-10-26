@@ -15,6 +15,8 @@ export function AddDealWorkspace({
   autoPublish,
   hasTrackingId,
   trackingIdLabel,
+  hasTrackingIdCa = false,
+  trackingIdLabelCa = null,
   hasTrackingIdUk = false,
   trackingIdLabelUk = null,
   isSuperAdminUser = false,
@@ -26,6 +28,8 @@ export function AddDealWorkspace({
   autoPublish: boolean;
   hasTrackingId: boolean;
   trackingIdLabel: string | null;
+  hasTrackingIdCa?: boolean;
+  trackingIdLabelCa?: string | null;
   hasTrackingIdUk?: boolean;
   trackingIdLabelUk?: string | null;
   isSuperAdminUser?: boolean;
@@ -45,7 +49,7 @@ export function AddDealWorkspace({
           role="tab"
           aria-selected={mode === "auto"}
           onClick={() => setMode("auto")}
-          className={`rounded-md px-3.5 py-1.5 font-medium transition-colors ${
+          className={`pressable min-h-11 rounded-md px-3.5 py-1.5 font-medium transition-colors ${
             mode === "auto"
               ? "bg-card text-foreground shadow-sm border border-border"
               : "text-muted hover:text-brand hover:bg-brand-soft"
@@ -58,7 +62,7 @@ export function AddDealWorkspace({
           role="tab"
           aria-selected={mode === "manual"}
           onClick={() => setMode("manual")}
-          className={`rounded-md px-3.5 py-1.5 font-medium transition-colors ${
+          className={`pressable min-h-11 rounded-md px-3.5 py-1.5 font-medium transition-colors ${
             mode === "manual"
               ? "bg-card text-foreground shadow-sm border border-border"
               : "text-muted hover:text-brand hover:bg-brand-soft"
@@ -76,6 +80,8 @@ export function AddDealWorkspace({
           autoPublish={autoPublish}
           hasTrackingId={hasTrackingId}
           trackingIdLabel={trackingIdLabel}
+          hasTrackingIdCa={hasTrackingIdCa}
+          trackingIdLabelCa={trackingIdLabelCa}
           hasTrackingIdUk={hasTrackingIdUk}
           trackingIdLabelUk={trackingIdLabelUk}
           isSuperAdminUser={isSuperAdminUser}

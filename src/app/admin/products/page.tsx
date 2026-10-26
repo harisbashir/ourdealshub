@@ -34,7 +34,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   const marketRaw = (sp.market || "").toUpperCase();
   const marketplace =
-    marketRaw === "US" || marketRaw === "UK" ? marketRaw : null;
+    marketRaw === "US" || marketRaw === "UK" || marketRaw === "CA" ? marketRaw : null;
   // Super Admin can filter any admin; normal admins only see their own products
   const adminFilter = isSuperAdmin(session) ? sp.admin : session.id;
   const where = adminProductWhere({
@@ -67,6 +67,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
 
   const rows: AdminProductRow[] = products.map((p) => ({
     id: p.id,
+    isDemo: p.isDemo,
     title: p.title,
     slug: p.slug,
     imageUrl: p.imageUrl,

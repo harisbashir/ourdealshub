@@ -1,5 +1,6 @@
 import { isAmazonRetailHost } from "@/lib/amazon-hosts";
 import { getApiConfig } from "@/lib/api-config";
+import { parseAmazonDiscount, type AmazonDiscount } from "@/lib/amazon-discounts";
 import {
   MARKETPLACES,
   parseMarketplace,
@@ -23,6 +24,7 @@ import {
  */
 
 export type AmazonLookupResult = {
+  discount: AmazonDiscount | null;
   asin: string;
   title: string;
   description: string;
@@ -66,7 +68,7 @@ type Credentials = { id: string; secret: string; version: string };
 async function loadCredentials(
   market: MarketplaceCode
 ): Promise<Credentials | null> {
-  const prefix = market === "UK" ? "AMAZON_UK" : "AMAZON_US";
+  const prefix = `AMAZON_${market}` as const;
   const [id, secret, version] = await Promise.all([
     getApiConfig(`${prefix}_CREDENTIAL_ID`),
     getApiConfig(`${prefix}_CREDENTIAL_SECRET`),
@@ -81,11 +83,12 @@ export async function isAmazonConfigured(
   market?: MarketplaceCode | string
 ): Promise<boolean> {
   if (market) return Boolean(await loadCredentials(parseMarketplace(market)));
-  const [us, uk] = await Promise.all([
+  const [us, uk, ca] = await Promise.all([
     loadCredentials("US"),
     loadCredentials("UK"),
+    loadCredentials("CA"),
   ]);
-  return Boolean(us || uk);
+  return Boolean(us || uk || ca);
 }
 
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
@@ -211,6 +214,12 @@ export function buildAffiliateUrl(
 }
 
 const GET_ITEMS_RESOURCES = [
+  "offersV2.listings.price",
+  "offersV2.listings.isBuyBoxWinner",
+  "offersV2.listings.availability",
+  "offersV2.listings.condition",
+  "offersV2.listings.dealDetails",
+  "offersV2.listings.type",
   "itemInfo.title",
   "itemInfo.features",
   "itemInfo.classifications",
@@ -389,6 +398,7 @@ export function parseCreatorsItem(
 
   return {
     asin,
+    discount: parseAmazonDiscount(item),
     title,
     description,
     imageUrl,

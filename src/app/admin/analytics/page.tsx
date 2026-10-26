@@ -453,7 +453,7 @@ function ProductTable({
                 <span
                   className="shrink-0 rounded-md bg-card-muted px-1.5 py-0.5 text-xs font-semibold text-foreground ring-1 ring-border"
                 >
-                  {p.marketplace === "UK" ? "UK" : "US"}
+                  {p.marketplace || "US"}
                 </span>
                 <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md bg-card-muted border border-border-subtle transition-colors hover:border-brand/50">
                   <Image
